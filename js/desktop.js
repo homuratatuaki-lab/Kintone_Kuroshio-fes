@@ -3,11 +3,16 @@
 
   var overlayId = 'festival-sync-overlay';
 
-  function showOverlay(progressText) {
+  function showOverlay(progressText, onCancelClick) {
     var el = document.getElementById(overlayId);
     if (el) {
       var txt = el.querySelector('.festival-sync-overlay-text');
       if (txt) txt.textContent = progressText || '処理中…';
+      var cancelBtn = el.querySelector('.festival-sync-cancel-btn');
+      if (cancelBtn && typeof onCancelClick === 'function') {
+        cancelBtn.onclick = onCancelClick;
+        cancelBtn.style.display = '';
+      }
       return;
     }
     el = document.createElement('div');
@@ -17,8 +22,11 @@
       '<div class="festival-sync-overlay-inner">' +
         '<div class="festival-sync-spinner"></div>' +
         '<p class="festival-sync-overlay-text">' + (progressText || '処理中…') + '</p>' +
+        '<button type="button" class="festival-sync-cancel-btn" style="margin-top:12px;">中止</button>' +
       '</div>';
     document.body.appendChild(el);
+    var cancelBtn = el.querySelector('.festival-sync-cancel-btn');
+    if (cancelBtn && typeof onCancelClick === 'function') cancelBtn.onclick = onCancelClick;
   }
 
   function updateOverlayProgress(text) {
@@ -58,18 +66,33 @@
     btn.addEventListener('click', function() {
       if (!window.FestivalSync || !window.FestivalSync.runSync) {
         setMessage('同期スクリプトの読み込みに失敗しています。', true);
+        alert('エラー: 同期スクリプトの読み込みに失敗しています。');
         return;
       }
+      var isCancelled = false;
       btn.disabled = true;
       setMessage('', false);
-      showOverlay('同期を実行しています…');
+      showOverlay('同期を実行しています…', function() {
+        isCancelled = true;
+      });
 
-      var onProgress = function(processed, contactUpdated) {
-        updateOverlayProgress(processed + ' 件処理中…（連絡先 ' + contactUpdated + ' 件更新済）');
+      var onProgress = function(phase, current, total, contactUpdated) {
+        var text = phase || '処理中…';
+        if (total > 0) {
+          text += ' ' + current + ' / ' + total + ' 件';
+        }
+        if (contactUpdated > 0) {
+          text += '（連絡先 ' + contactUpdated + ' 件更新済）';
+        }
+        text += '…';
+        updateOverlayProgress(text);
       };
 
-      window.FestivalSync.runSync(onProgress)
+      var getIsCancelled = function() { return isCancelled; };
+
+      window.FestivalSync.runSync(onProgress, getIsCancelled)
         .then(function(result) {
+          if (isCancelled) return;
           updateOverlayProgress(
             '完了: 団体管理 ' + (result.updated || 0) + ' 件、連絡先 ' + (result.contactUpdated || 0) + ' 件更新'
           );
@@ -85,8 +108,14 @@
         })
         .catch(function(err) {
           hideOverlay();
-          setMessage('エラー: ' + (err.message || String(err)), true);
+          var msg = err && err.message ? err.message : String(err);
+          setMessage('エラー: ' + msg, true);
           btn.disabled = false;
+          if (msg === 'CANCELLED') {
+            alert('処理を中断しました');
+          } else {
+            alert('エラー: ' + msg);
+          }
         });
     });
   }
