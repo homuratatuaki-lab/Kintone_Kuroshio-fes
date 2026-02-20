@@ -1,0 +1,27 @@
+{
+  "manifest_version": 1,
+  "version": "1.0.0",
+  "type": "APP",
+  "name": {
+    "ja": "祭典団体状況 一括同期プラグイン（Advanced）",
+    "en": "Festival Organization Status Synchronizer (Advanced)"
+  },
+  "description": {
+    "ja": "団体管理アプリから子アプリの申込状況を集計し、団体管理・連絡先アプリを一括更新します。",
+    "en": "Aggregates child app status into parent app and syncs to contact app."
+  },
+  "icon": "image/icon.png",
+  "homepage_url": {"ja": "https://example.com", "en": "https://example.com"},
+  "config": {
+    "html": "html/config.html",
+    "js": [
+      "https://js.cybozu.com/jquery/3.7.1/jquery.min.js",
+      "js/config.js"
+    ],
+    "css": ["css/config.css"]
+  },
+  "desktop": {
+    "js": ["js/sync.js", "js/desktop.js"],
+    "css": ["css/desktop.css"]
+  }
+}

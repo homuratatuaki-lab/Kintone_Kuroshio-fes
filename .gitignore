@@ -1,0 +1,10 @@
+# パッケージ化で生成されるファイル（秘密鍵は必ず手元で保管）
+*.ppk
+plugin.zip
+
+# Node
+node_modules/
+
+# Editor / local
+.cursor/
+.DS_Store

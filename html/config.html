@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>祭典団体状況 一括同期プラグイン - 設定</title>
+</head>
+<body>
+  <div id="config-container">
+    <p id="config-loading" class="config-loading" style="display:none;">アプリ・フィールド情報を読み込み中…</p>
+    <h2>子アプリ設定（申込書など）</h2>
+    <p class="description">団体IDで紐付く子アプリを複数登録できます。行を追加して設定してください。</p>
+    <table id="child-app-table" class="config-table">
+      <thead>
+        <tr>
+          <th>参照先アプリ</th>
+          <th>子アプリ側 団体IDフィールド</th>
+          <th>判定モード</th>
+          <th>コピー元フィールド（値のコピー時）</th>
+          <th>親アプリ 反映先フィールド</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="child-app-tbody">
+        <!-- 行は JS で動的追加 -->
+      </tbody>
+    </table>
+    <button type="button" id="add-child-row" class="btn btn-secondary">+ 子アプリ行を追加</button>
+
+    <hr>
+
+    <h2>親アプリ（自アプリ＝団体管理）設定</h2>
+    <p class="description">反映先フィールドは、上記「子アプリ設定」の各行で指定します。</p>
+    <table class="config-table single-table">
+      <tbody>
+        <tr>
+          <th>自アプリ側 団体IDフィールド</th>
+          <td><select id="parent-group-id-field"></select></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2>連絡先アプリ設定</h2>
+    <table class="config-table single-table">
+      <tbody>
+        <tr>
+          <th>連絡先アプリ</th>
+          <td><select id="contact-app-id"></select></td>
+        </tr>
+        <tr>
+          <th>連絡先アプリ側 団体IDフィールド</th>
+          <td><select id="contact-group-id-field"></select></td>
+        </tr>
+        <tr>
+          <th>連絡先アプリ側 反映先フィールド</th>
+          <td><select id="contact-target-field"></select></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="actions">
+      <button type="button" id="btn-cancel" class="btn btn-secondary">キャンセル</button>
+      <button type="button" id="btn-save" class="btn btn-primary">保存</button>
+    </div>
+  </div>
+
+  <script>
+    // config.js が kintone.plugin.app.config を利用する前提
+  </script>
+</body>
+</html>
