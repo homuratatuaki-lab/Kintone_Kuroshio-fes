@@ -1,24 +1,24 @@
 #config-container {
   max-width: 960px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 24px;
   font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
 }
 
 .config-loading {
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: #e8f4fc;
-  border-radius: 4px;
-  margin-bottom: 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
   color: #333;
 }
 
 .config-error {
-  padding: 12px;
-  margin-bottom: 16px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
   background: #fde8e8;
   border: 1px solid #e0b0b0;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #c0392b;
   font-size: 14px;
 }
@@ -27,40 +27,45 @@
   display: none !important;
 }
 
+/* カード：一画面一役割 */
+.config-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  padding: 24px 28px;
+  margin-bottom: 28px;
+}
+
+.config-card:last-of-type {
+  margin-bottom: 32px;
+}
+
 #config-container h2 {
-  margin-top: 24px;
-  margin-bottom: 8px;
-  font-size: 1.1em;
+  margin: 0 0 16px 0;
+  font-size: 1.05em;
+  font-weight: 600;
   color: #333;
-}
-
-#config-container h2:first-child {
-  margin-top: 0;
-}
-
-.description {
-  color: #666;
-  font-size: 0.9em;
-  margin-bottom: 12px;
 }
 
 .config-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .config-table th,
 .config-table td {
-  border: 1px solid #ddd;
-  padding: 8px 10px;
+  border: 1px solid #e0e0e0;
+  padding: 10px 12px;
   text-align: left;
   vertical-align: middle;
 }
 
 .config-table thead th {
-  background: #f5f5f5;
+  background: #f8f9fa;
   font-weight: 600;
+  font-size: 13px;
 }
 
 .config-table input[type="text"],
@@ -68,7 +73,7 @@
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  padding: 6px 8px;
+  padding: 6px 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
@@ -78,36 +83,78 @@
 }
 
 .config-table .mode-cell {
-  min-width: 120px;
+  min-width: 160px;
 }
 
 .config-table .btn-remove-row {
-  padding: 4px 10px;
+  padding: 5px 12px;
   font-size: 12px;
-  background: #e0e0e0;
+  background: #ecf0f1;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  color: #555;
 }
 
 .config-table .btn-remove-row:hover {
-  background: #d0d0d0;
+  background: #d5dbdb;
 }
 
 .single-table th {
-  width: 280px;
-  background: #f9f9f9;
+  width: 220px;
+  background: #f8f9fa;
+  font-size: 13px;
+}
+
+/* アプリ名確認：横にボタン・青文字で表示 */
+.app-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.app-select-row select {
+  flex: 1;
+  min-width: 180px;
+}
+
+.btn-verify {
+  padding: 6px 12px;
+  font-size: 13px;
+  background: #ecf0f1;
+  color: #333;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-verify:hover {
+  background: #d5dbdb;
+}
+
+.app-name-display {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #2980b9;
+  font-weight: 500;
+}
+
+.app-name-display:empty {
+  display: none;
 }
 
 .actions {
-  margin-top: 24px;
-  padding-top: 16px;
+  margin-top: 28px;
+  padding-top: 20px;
   border-top: 1px solid #eee;
 }
 
 .btn {
-  padding: 8px 16px;
-  border-radius: 4px;
+  padding: 10px 20px;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
   font-size: 14px;
@@ -125,6 +172,7 @@
 .btn-secondary {
   background: #ecf0f1;
   color: #333;
+  border: 1px solid #d5dbdb;
 }
 
 .btn-secondary:hover {
@@ -132,11 +180,5 @@
 }
 
 #add-child-row {
-  margin-bottom: 24px;
-}
-
-hr {
-  border: none;
-  border-top: 1px solid #ddd;
-  margin: 24px 0;
+  margin-top: 4px;
 }

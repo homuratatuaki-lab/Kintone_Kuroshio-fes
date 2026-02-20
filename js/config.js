@@ -182,8 +182,8 @@
     modeTd.className = 'mode-cell';
     modeTd.innerHTML =
       '<select class="child-mode">' +
-        '<option value="' + MODE_EXISTENCE + '"' + (rowData.mode === MODE_EXISTENCE ? ' selected' : '') + '>存在確認</option>' +
-        '<option value="' + MODE_COPY + '"' + (rowData.mode === MODE_COPY ? ' selected' : '') + '>値のコピー</option>' +
+        '<option value="' + MODE_EXISTENCE + '"' + (rowData.mode === MODE_EXISTENCE ? ' selected' : '') + '>提出されたかチェックする</option>' +
+        '<option value="' + MODE_COPY + '"' + (rowData.mode === MODE_COPY ? ' selected' : '') + '>提出内容をコピーする</option>' +
       '</select>';
     tr.appendChild(document.createElement('td')).appendChild(copySelect);
     tr.appendChild(document.createElement('td')).appendChild(targetSelect);
@@ -194,10 +194,10 @@
     removeBtn.textContent = '削除';
     removeTd.appendChild(removeBtn);
 
-    fillSelect(appSelect, appList, rowData.appId, 'アプリを選択');
-    fillSelect(groupSelect, [], rowData.groupIdFieldCode);
-    fillSelect(copySelect, [], rowData.copySourceFieldCode, '値のコピー時のみ');
-    fillSelect(targetSelect, parentFields, rowData.targetFieldCode, '親の反映先を選択');
+    fillSelect(appSelect, appList, rowData.appId, '申請書アプリを選択');
+    fillSelect(groupSelect, [], rowData.groupIdFieldCode, '紐付けキー');
+    fillSelect(copySelect, [], rowData.copySourceFieldCode, 'コピー元（使用時のみ）');
+    fillSelect(targetSelect, parentFields, rowData.targetFieldCode, '表示する欄を選択');
 
     removeBtn.addEventListener('click', function() { tr.remove(); });
 
@@ -217,8 +217,8 @@
       setFieldSelectsLoading(true);
       fetchFormFields(appId)
         .then(function(fields) {
-          fillSelect(groupSelect, fields, null, '団体IDフィールド');
-          fillSelect(copySelect, fields, null, 'コピー元（値のコピー時）');
+          fillSelect(groupSelect, fields, null, '紐付けキー');
+          fillSelect(copySelect, fields, null, 'コピー元');
         })
         .catch(function(err) {
           showError('参照先アプリのフィールド取得に失敗しました: ' + (err.message || err));
@@ -231,8 +231,8 @@
       setFieldSelectsLoading(true);
       fetchFormFields(rowData.appId)
         .then(function(fields) {
-          fillSelect(groupSelect, fields, rowData.groupIdFieldCode, '団体IDフィールド');
-          fillSelect(copySelect, fields, rowData.copySourceFieldCode, 'コピー元（値のコピー時）');
+          fillSelect(groupSelect, fields, rowData.groupIdFieldCode, '紐付けキー');
+          fillSelect(copySelect, fields, rowData.copySourceFieldCode, 'コピー元');
         })
         .catch(function(err) {
           showError('子アプリのフィールド取得に失敗しました: ' + (err.message || err));
@@ -298,10 +298,10 @@
     var loadParentFields = parentAppId
       ? fetchFormFields(parentAppId).then(function(fields) {
           cache.parentFields = fields;
-          fillSelect(parentGroupSelect, fields, c.parentGroupIdField, '団体IDフィールドを選択');
+          fillSelect(parentGroupSelect, fields, c.parentGroupIdField, '紐付けキーを選択');
           return fields;
         }).catch(function(err) {
-          showError('親アプリのフィールド取得に失敗しました: ' + (err.message || err));
+          showError('団体一覧アプリのフィールド取得に失敗しました: ' + (err.message || err));
           return [];
         })
       : Promise.resolve([]);
@@ -322,8 +322,8 @@
           }
           if (c.contactAppId && String(c.contactAppId) !== 'undefined') {
             return fetchFormFields(c.contactAppId).then(function(fields) {
-              fillSelect(contactGroupSelect, fields, c.contactGroupIdField, '団体IDフィールド');
-              fillSelect(contactTargetSelect, fields, c.contactTargetField, '反映先フィールド');
+              fillSelect(contactGroupSelect, fields, c.contactGroupIdField, '紐付けキー');
+              fillSelect(contactTargetSelect, fields, c.contactTargetField, '表示する欄');
             }).catch(function(err) {
               showError('連絡先アプリのフィールド取得に失敗しました: ' + (err.message || err));
             });
@@ -347,12 +347,13 @@
           contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
           contactTargetSelect.innerHTML = '<option value="">— 選択 —</option>';
           contactGroupSelect.disabled = contactTargetSelect.disabled = false;
+          updateContactAppNameDisplay('');
           return;
         }
         fetchFormFields(appId)
           .then(function(fields) {
-            fillSelect(contactGroupSelect, fields, null, '団体IDフィールド');
-            fillSelect(contactTargetSelect, fields, null, '反映先フィールド');
+            fillSelect(contactGroupSelect, fields, null, '紐付けキー');
+            fillSelect(contactTargetSelect, fields, null, '表示する欄');
           })
           .catch(function(err) {
             showError('連絡先アプリのフィールド取得に失敗しました: ' + (err.message || err));
@@ -361,16 +362,35 @@
           })
           .then(function() {
             contactGroupSelect.disabled = contactTargetSelect.disabled = false;
+            updateContactAppNameDisplay(appId);
           });
       });
     }
+    if (c.contactAppId && String(c.contactAppId) !== 'undefined') updateContactAppNameDisplay(c.contactAppId);
+  }
+
+  function updateContactAppNameDisplay(appId) {
+    var el = document.getElementById('contact-app-name-display');
+    if (!el) return;
+    if (!appId || appId === 'undefined') {
+      el.textContent = '';
+      return;
+    }
+    var name = '';
+    for (var i = 0; i < cache.appList.length; i++) {
+      if (String(cache.appList[i].id) === String(appId)) {
+        name = cache.appList[i].name || '';
+        break;
+      }
+    }
+    el.textContent = name ? '✓ ' + name : '';
   }
 
   function saveConfig() {
     clearError();
     var parentGroupIdField = document.getElementById('parent-group-id-field').value.trim();
     if (!parentGroupIdField) {
-      showError('「自アプリ側 団体IDフィールド」を選択してください。');
+      showError('「2. 共通の紐付けキー」で団体一覧アプリの紐付けキーを選択してください。');
       return;
     }
     var childRows = collectChildRows(document.getElementById('child-app-tbody'));
@@ -378,7 +398,7 @@
       var row = childRows[i];
       if (row.appId && String(row.appId) !== 'undefined') {
         if (!row.groupIdFieldCode || !row.targetFieldCode) {
-          showError('子アプリ設定の' + (i + 1) + '行目: 参照先アプリを選択した場合は「団体IDフィールド」と「親アプリ 反映先フィールド」を選択してください。');
+          showError('1. チェックする申請書の' + (i + 1) + '行目で、申請書アプリを選んだら「紐付けキー」と「表示する欄」を選択してください。');
           return;
         }
       }
@@ -388,7 +408,7 @@
     var contactTargetField = document.getElementById('contact-target-field').value.trim();
     if (contactAppId && String(contactAppId) !== 'undefined') {
       if (!contactGroupIdField || !contactTargetField) {
-        showError('連絡先アプリを選択した場合は「団体IDフィールド」と「反映先フィールド」を選択してください。');
+        showError('3. 連絡先を利用する場合は「紐付けキー」と「表示する欄」を選択してください。');
         return;
       }
     }
@@ -417,6 +437,15 @@
       var appList = cache.appList.map(function(a) { return { id: a.id, name: a.name }; });
       addChildRow(document.getElementById('child-app-tbody'), null, appList, parentFields);
     });
+
+    var contactVerifyBtn = document.getElementById('contact-app-verify');
+    if (contactVerifyBtn) {
+      contactVerifyBtn.addEventListener('click', function() {
+        var contactAppSelect = document.getElementById('contact-app-id');
+        var appId = (contactAppSelect && contactAppSelect.value) ? contactAppSelect.value.trim() : '';
+        updateContactAppNameDisplay(appId && appId !== 'undefined' ? appId : '');
+      });
+    }
 
     document.getElementById('btn-save').addEventListener('click', saveConfig);
     document.getElementById('btn-cancel').addEventListener('click', function() { history.back(); });
