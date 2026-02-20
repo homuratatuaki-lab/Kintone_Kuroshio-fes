@@ -11,6 +11,29 @@
     fieldCache: {}
   };
 
+  function showError(msg) {
+    var el = document.getElementById('config-error-message');
+    if (el) {
+      el.textContent = msg;
+      el.style.display = msg ? 'block' : 'none';
+    }
+    if (msg && typeof console !== 'undefined' && console.error) console.error('[プラグイン設定]', msg);
+  }
+
+  function clearError() {
+    showError('');
+  }
+
+  function getApiBasePath() {
+    try {
+      if (typeof location !== 'undefined' && location.pathname.indexOf('/guest/') !== -1) {
+        var m = location.pathname.match(/\/guest\/(\d+)\//);
+        if (m) return '/k/guest/' + m[1] + '/v1';
+      }
+    } catch (e) {}
+    return '/k/v1';
+  }
+
   function getDefaultConfig() {
     return {
       childAppSettings: [],
@@ -22,51 +45,80 @@
   }
 
   /**
-   * アプリ一覧を取得（REST API）
+   * アプリ一覧を取得（REST API）。ゲストスペース時はパスを切り替え。
    */
   function fetchAppList() {
+    var base = getApiBasePath();
     return new Promise(function(resolve, reject) {
-      var all = [];
-      var offset = 0;
-      function next() {
-        var url = kintone.api.url('/k/v1/apps', true) + '?limit=' + APP_LIST_LIMIT + '&offset=' + offset;
-        kintone.api(url, 'GET', {}, function(resp) {
-          var list = resp.apps || [];
-          list.forEach(function(a) {
-            all.push({ id: String(a.id), name: a.name || ('アプリ' + a.id) });
+      try {
+        var all = [];
+        var offset = 0;
+        function next() {
+          var url = kintone.api.url(base + '/apps', true) + '?limit=' + APP_LIST_LIMIT + '&offset=' + offset;
+          kintone.api(url, 'GET', {}, function(resp) {
+            try {
+              var list = resp.apps || [];
+              list.forEach(function(a) {
+                var appId = a.id != null ? a.id : a.appId;
+                if (appId == null || String(appId) === 'undefined') return;
+                all.push({ id: String(appId), name: a.name || ('アプリ' + appId) });
+              });
+              if (list.length < APP_LIST_LIMIT) {
+                resolve(all);
+                return;
+              }
+              offset += APP_LIST_LIMIT;
+              next();
+            } catch (e) {
+              reject(e);
+            }
+          }, function(err) {
+            reject(err && err.message ? err : new Error('アプリ一覧の取得に失敗しました'));
           });
-          if (list.length < APP_LIST_LIMIT) {
-            resolve(all);
-            return;
-          }
-          offset += APP_LIST_LIMIT;
-          next();
-        }, reject);
+        }
+        next();
+      } catch (e) {
+        reject(e);
       }
-      next();
     });
   }
 
   /**
-   * 指定アプリのフォームフィールド一覧を取得
+   * 指定アプリのフォームフィールド一覧を取得。appId が無効な場合は reject。
    */
   function fetchFormFields(appId) {
-    if (cache.fieldCache[appId]) return Promise.resolve(cache.fieldCache[appId]);
+    if (appId == null || String(appId).trim() === '' || String(appId) === 'undefined') {
+      return Promise.reject(new Error('アプリが選択されていません'));
+    }
+    var key = String(appId);
+    if (cache.fieldCache[key]) return Promise.resolve(cache.fieldCache[key]);
+    var base = getApiBasePath();
     return new Promise(function(resolve, reject) {
-      var url = kintone.api.url('/k/v1/app/form/fields', true) + '?app=' + encodeURIComponent(appId);
-      kintone.api(url, 'GET', {}, function(resp) {
-        var list = [];
-        var props = resp.properties || {};
-        Object.keys(props).forEach(function(code) {
-          var p = props[code];
-          if (p && p.type && code.indexOf('__') !== 0) {
-            list.push({ code: code, label: p.label || code });
+      try {
+        var url = kintone.api.url(base + '/app/form/fields', true) + '?app=' + encodeURIComponent(key);
+        kintone.api(url, 'GET', {}, function(resp) {
+          try {
+            var list = [];
+            var props = resp.properties || {};
+            Object.keys(props).forEach(function(code) {
+              var p = props[code];
+              if (p && p.type && code.indexOf('__') !== 0) {
+                list.push({ code: code, label: p.label || code });
+              }
+            });
+            list.sort(function(a, b) { return (a.label || '').localeCompare(b.label || ''); });
+            cache.fieldCache[key] = list;
+            resolve(list);
+          } catch (e) {
+            reject(e);
           }
+        }, function(err) {
+          var msg = (err && err.message) ? err.message : 'フィールド一覧の取得に失敗しました';
+          reject(new Error(msg));
         });
-        list.sort(function(a, b) { return (a.label || '').localeCompare(b.label || ''); });
-        cache.fieldCache[appId] = list;
-        resolve(list);
-      }, reject);
+      } catch (e) {
+        reject(e);
+      }
     });
   }
 
@@ -149,23 +201,43 @@
 
     removeBtn.addEventListener('click', function() { tr.remove(); });
 
+    function setFieldSelectsLoading(loading) {
+      groupSelect.disabled = copySelect.disabled = loading;
+      if (loading) {
+        groupSelect.innerHTML = '<option value="">読み込み中…</option>';
+        copySelect.innerHTML = '<option value="">読み込み中…</option>';
+      }
+    }
+
     appSelect.addEventListener('change', function() {
-      var appId = appSelect.value;
+      var appId = (appSelect.value || '').trim();
       groupSelect.innerHTML = '<option value="">— 選択 —</option>';
       copySelect.innerHTML = '<option value="">— 選択 —</option>';
-      if (!appId) return;
-      fetchFormFields(appId).then(function(fields) {
-        fillSelect(groupSelect, fields, null, '団体IDフィールド');
-        fillSelect(copySelect, fields, null, 'コピー元（値のコピー時）');
-      });
+      if (!appId || appId === 'undefined') return;
+      setFieldSelectsLoading(true);
+      fetchFormFields(appId)
+        .then(function(fields) {
+          fillSelect(groupSelect, fields, null, '団体IDフィールド');
+          fillSelect(copySelect, fields, null, 'コピー元（値のコピー時）');
+        })
+        .catch(function(err) {
+          showError('参照先アプリのフィールド取得に失敗しました: ' + (err.message || err));
+        })
+        .then(function() { setFieldSelectsLoading(false); });
     });
 
     tbody.appendChild(tr);
-    if (rowData.appId) {
-      fetchFormFields(rowData.appId).then(function(fields) {
-        fillSelect(groupSelect, fields, rowData.groupIdFieldCode, '団体IDフィールド');
-        fillSelect(copySelect, fields, rowData.copySourceFieldCode, 'コピー元（値のコピー時）');
-      });
+    if (rowData.appId && String(rowData.appId) !== 'undefined') {
+      setFieldSelectsLoading(true);
+      fetchFormFields(rowData.appId)
+        .then(function(fields) {
+          fillSelect(groupSelect, fields, rowData.groupIdFieldCode, '団体IDフィールド');
+          fillSelect(copySelect, fields, rowData.copySourceFieldCode, 'コピー元（値のコピー時）');
+        })
+        .catch(function(err) {
+          showError('子アプリのフィールド取得に失敗しました: ' + (err.message || err));
+        })
+        .then(function() { setFieldSelectsLoading(false); });
     }
   }
 
@@ -195,6 +267,7 @@
   }
 
   function loadConfig() {
+    clearError();
     var loadingEl = document.getElementById('config-loading');
     if (loadingEl) loadingEl.style.display = 'block';
 
@@ -228,67 +301,113 @@
           fillSelect(parentGroupSelect, fields, c.parentGroupIdField, '団体IDフィールドを選択');
           return fields;
         }).catch(function(err) {
-          alert('親アプリのフィールド取得に失敗しました: ' + (err.message || err));
+          showError('親アプリのフィールド取得に失敗しました: ' + (err.message || err));
           return [];
         })
       : Promise.resolve([]);
 
-    fetchAppList().then(function(appList) {
-      cache.appList = appList;
-      fillSelect(contactAppSelect, appList.map(function(a) { return { id: a.id, name: a.name }; }), c.contactAppId, '連絡先アプリを選択');
+    fetchAppList()
+      .then(function(appList) {
+        cache.appList = appList;
+        fillSelect(contactAppSelect, appList.map(function(a) { return { id: a.id, name: a.name }; }), c.contactAppId, '連絡先アプリを選択');
 
-      return loadParentFields.then(function(parentFields) {
-        var appOpts = appList.map(function(a) { return { id: a.id, name: a.name }; });
-        if (c.childAppSettings.length === 0) {
-          addChildRow(tbody, null, appOpts, parentFields);
-        } else {
-          c.childAppSettings.forEach(function(row) {
-            addChildRow(tbody, row, appOpts, parentFields);
-          });
-        }
-        if (c.contactAppId) {
-          return fetchFormFields(c.contactAppId).then(function(fields) {
-            fillSelect(contactGroupSelect, fields, c.contactGroupIdField, '団体IDフィールド');
-            fillSelect(contactTargetSelect, fields, c.contactTargetField, '反映先フィールド');
-          });
-        }
+        return loadParentFields.then(function(parentFields) {
+          var appOpts = appList.map(function(a) { return { id: a.id, name: a.name }; });
+          if (c.childAppSettings.length === 0) {
+            addChildRow(tbody, null, appOpts, parentFields);
+          } else {
+            c.childAppSettings.forEach(function(row) {
+              addChildRow(tbody, row, appOpts, parentFields);
+            });
+          }
+          if (c.contactAppId && String(c.contactAppId) !== 'undefined') {
+            return fetchFormFields(c.contactAppId).then(function(fields) {
+              fillSelect(contactGroupSelect, fields, c.contactGroupIdField, '団体IDフィールド');
+              fillSelect(contactTargetSelect, fields, c.contactTargetField, '反映先フィールド');
+            }).catch(function(err) {
+              showError('連絡先アプリのフィールド取得に失敗しました: ' + (err.message || err));
+            });
+          }
+        });
+      })
+      .catch(function(err) {
+        showError('アプリ一覧の取得に失敗しました。権限を確認してください。' + (err.message ? '\n' + err.message : ''));
+      })
+      .then(function() {
+        if (loadingEl) loadingEl.style.display = 'none';
       });
-    }).catch(function(err) {
-      alert('アプリ一覧の取得に失敗しました。権限を確認してください。\n' + (err.message || err));
-    }).then(function() {
-      if (loadingEl) loadingEl.style.display = 'none';
-    });
 
     if (contactAppSelect) {
       contactAppSelect.addEventListener('change', function() {
-        var appId = contactAppSelect.value;
-        contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
-        contactTargetSelect.innerHTML = '<option value="">— 選択 —</option>';
-        if (!appId) return;
-        fetchFormFields(appId).then(function(fields) {
-          fillSelect(contactGroupSelect, fields, null, '団体IDフィールド');
-          fillSelect(contactTargetSelect, fields, null, '反映先フィールド');
-        }).catch(function(err) {
-          alert('フィールドの取得に失敗しました: ' + (err.message || err));
-        });
+        var appId = (contactAppSelect.value || '').trim();
+        contactGroupSelect.innerHTML = '<option value="">読み込み中…</option>';
+        contactTargetSelect.innerHTML = '<option value="">読み込み中…</option>';
+        contactGroupSelect.disabled = contactTargetSelect.disabled = true;
+        if (!appId || appId === 'undefined') {
+          contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
+          contactTargetSelect.innerHTML = '<option value="">— 選択 —</option>';
+          contactGroupSelect.disabled = contactTargetSelect.disabled = false;
+          return;
+        }
+        fetchFormFields(appId)
+          .then(function(fields) {
+            fillSelect(contactGroupSelect, fields, null, '団体IDフィールド');
+            fillSelect(contactTargetSelect, fields, null, '反映先フィールド');
+          })
+          .catch(function(err) {
+            showError('連絡先アプリのフィールド取得に失敗しました: ' + (err.message || err));
+            contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
+            contactTargetSelect.innerHTML = '<option value="">— 選択 —</option>';
+          })
+          .then(function() {
+            contactGroupSelect.disabled = contactTargetSelect.disabled = false;
+          });
       });
     }
   }
 
   function saveConfig() {
+    clearError();
+    var parentGroupIdField = document.getElementById('parent-group-id-field').value.trim();
+    if (!parentGroupIdField) {
+      showError('「自アプリ側 団体IDフィールド」を選択してください。');
+      return;
+    }
     var childRows = collectChildRows(document.getElementById('child-app-tbody'));
+    for (var i = 0; i < childRows.length; i++) {
+      var row = childRows[i];
+      if (row.appId && String(row.appId) !== 'undefined') {
+        if (!row.groupIdFieldCode || !row.targetFieldCode) {
+          showError('子アプリ設定の' + (i + 1) + '行目: 参照先アプリを選択した場合は「団体IDフィールド」と「親アプリ 反映先フィールド」を選択してください。');
+          return;
+        }
+      }
+    }
+    var contactAppId = document.getElementById('contact-app-id').value.trim();
+    var contactGroupIdField = document.getElementById('contact-group-id-field').value.trim();
+    var contactTargetField = document.getElementById('contact-target-field').value.trim();
+    if (contactAppId && String(contactAppId) !== 'undefined') {
+      if (!contactGroupIdField || !contactTargetField) {
+        showError('連絡先アプリを選択した場合は「団体IDフィールド」と「反映先フィールド」を選択してください。');
+        return;
+      }
+    }
     var config = {
       childAppSettings: childRows,
-      parentGroupIdField: document.getElementById('parent-group-id-field').value.trim(),
-      contactAppId: document.getElementById('contact-app-id').value.trim(),
-      contactGroupIdField: document.getElementById('contact-group-id-field').value.trim(),
-      contactTargetField: document.getElementById('contact-target-field').value.trim()
+      parentGroupIdField: parentGroupIdField,
+      contactAppId: contactAppId,
+      contactGroupIdField: contactGroupIdField,
+      contactTargetField: contactTargetField
     };
-
-    var toSave = { config: JSON.stringify(config) };
-    kintone.plugin.app.setConfig(toSave, function() {
-      alert('設定を保存しました。');
-    });
+    try {
+      var toSave = { config: JSON.stringify(config) };
+      kintone.plugin.app.setConfig(toSave, function() {
+        clearError();
+        alert('設定を保存しました。');
+      });
+    } catch (e) {
+      showError('保存に失敗しました: ' + (e.message || e));
+    }
   }
 
   function init() {

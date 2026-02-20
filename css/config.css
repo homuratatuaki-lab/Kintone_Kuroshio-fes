@@ -13,6 +13,20 @@
   color: #333;
 }
 
+.config-error {
+  padding: 12px;
+  margin-bottom: 16px;
+  background: #fde8e8;
+  border: 1px solid #e0b0b0;
+  border-radius: 4px;
+  color: #c0392b;
+  font-size: 14px;
+}
+
+.config-error:empty {
+  display: none !important;
+}
+
 #config-container h2 {
   margin-top: 24px;
   margin-bottom: 8px;
