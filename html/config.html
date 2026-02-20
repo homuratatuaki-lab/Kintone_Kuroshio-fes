@@ -9,65 +9,73 @@
     <p id="config-loading" class="config-loading" style="display:none;">読み込み中…</p>
     <div id="config-error-message" class="config-error" role="alert" style="display:none;"></div>
 
-    <section class="config-card">
-      <h2>1. チェックする申請書（申込書など）</h2>
-      <table id="child-app-table" class="config-table">
-        <thead>
+    <section class="config-card card-step">
+      <div class="step-head">
+        <span class="step-num">1</span>
+        <div>
+          <h2>どの申請書をチェックするか</h2>
+          <p class="section-hint">パンフレット・原稿など、提出状況を見たい申請書アプリを選びます。</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="child-app-table" class="config-table">
+          <thead>
           <tr>
             <th>申請書アプリ</th>
             <th>申請書側の紐付けキー</th>
             <th>連携モード</th>
             <th>コピー元（モードで使用時）</th>
             <th>団体一覧に表示する欄</th>
+            <th>連絡先に表示する欄（任意）</th>
             <th></th>
           </tr>
-        </thead>
-        <tbody id="child-app-tbody"></tbody>
-      </table>
-      <button type="button" id="add-child-row" class="btn btn-secondary">+ 申請書を1件追加</button>
+          </thead>
+          <tbody id="child-app-tbody"></tbody>
+        </table>
+      </div>
+      <button type="button" id="add-child-row" class="btn btn-add">+ 申請書を1件追加</button>
     </section>
 
-    <section class="config-card">
-      <h2>2. 共通の紐付けキー</h2>
-      <table class="config-table single-table">
-        <tbody>
-          <tr>
-            <th>団体一覧アプリの紐付けキー</th>
-            <td><select id="parent-group-id-field" title="団体ごとに同じ値が入るフィールド"></select></td>
-          </tr>
-        </tbody>
-      </table>
+    <section class="config-card card-step">
+      <div class="step-head">
+        <span class="step-num">2</span>
+        <div>
+          <h2>団体一覧で「どの項目」で団体を識別するか</h2>
+          <p class="section-hint">申請書と団体一覧を同じ値で紐付けます。レコード番号や団体IDなど、1団体1つに決まる項目を選んでください。</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <label for="parent-group-id-field" class="field-label">団体一覧アプリの紐付けキー</label>
+        <select id="parent-group-id-field" class="field-input"></select>
+      </div>
     </section>
 
-    <section class="config-card">
-      <h2>3. 連絡先への自動反映（任意）</h2>
-      <table class="config-table single-table">
-        <tbody>
-          <tr>
-            <th>連絡先アプリ</th>
-            <td>
-              <div class="app-select-row">
-                <select id="contact-app-id" title="アプリを選択"></select>
-                <button type="button" id="contact-app-verify" class="btn btn-verify">アプリ名を確認</button>
-              </div>
-              <span id="contact-app-name-display" class="app-name-display"></span>
-            </td>
-          </tr>
-          <tr>
-            <th>連絡先アプリの紐付けキー</th>
-            <td><select id="contact-group-id-field" title="団体IDと同じ値のフィールド"></select></td>
-          </tr>
-          <tr>
-            <th>連絡先に表示する欄</th>
-            <td><select id="contact-target-field" title="同期結果を表示するフィールド"></select></td>
-          </tr>
-        </tbody>
-      </table>
+    <section class="config-card card-step card-optional">
+      <div class="step-head">
+        <span class="step-num">3</span>
+        <div>
+          <h2>連絡先アプリにも同じ結果を反映する（任意）</h2>
+          <p class="section-hint">使わない場合は何も選ばずに保存してかまいません。</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <label class="field-label">連絡先アプリ</label>
+        <div class="app-select-row">
+          <select id="contact-app-id" class="field-input"></select>
+          <button type="button" id="contact-app-verify" class="btn btn-verify">アプリ名を確認</button>
+        </div>
+        <span id="contact-app-name-display" class="app-name-display"></span>
+      </div>
+      <div class="field-block">
+        <label for="contact-group-id-field" class="field-label">連絡先アプリの紐付けキー</label>
+        <select id="contact-group-id-field" class="field-input"></select>
+      </div>
+      <p class="section-hint" style="margin-top:8px;">上記「1. チェックする申請書」の各行で、連絡先のどの欄にその申請書の結果を出すか指定できます。</p>
     </section>
 
     <div class="actions">
-      <button type="button" id="btn-cancel" class="btn btn-secondary">キャンセル</button>
-      <button type="button" id="btn-save" class="btn btn-primary">保存</button>
+      <button type="button" id="btn-cancel" class="btn btn-ghost">キャンセル</button>
+      <button type="button" id="btn-save" class="btn btn-primary btn-save">保存する</button>
     </div>
   </div>
 </body>

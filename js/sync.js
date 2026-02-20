@@ -357,21 +357,24 @@
   var PUT_RECORDS_LIMIT = 100;
 
   /**
-   * 連絡先アプリのレコードを一括更新（PUT・100件ずつに分割）
+   * 連絡先アプリのレコードを一括更新（PUT・100件ずつ、1レコードあたり複数フィールド）
+   * @param {object} valuesByField - { フィールドコード: 値, ... }
    */
-  function updateContactRecords(contactAppId, contactTargetField, recordIds, value, getIsCancelled) {
-    if (recordIds.length === 0) return Promise.resolve();
-    function toRecords(ids, fieldCode, val) {
+  function updateContactRecords(contactAppId, recordIds, valuesByField, getIsCancelled) {
+    if (recordIds.length === 0 || !valuesByField || Object.keys(valuesByField).length === 0) return Promise.resolve();
+    function toRecords(ids, byField) {
       return ids.map(function(id) {
         var rec = {};
-        rec[fieldCode] = { value: val };
+        Object.keys(byField).forEach(function(fc) {
+          rec[fc] = { value: byField[fc] };
+        });
         return { id: id, record: rec };
       });
     }
     var chain = Promise.resolve();
     for (var i = 0; i < recordIds.length; i += PUT_RECORDS_LIMIT) {
       if (getIsCancelled && getIsCancelled()) return Promise.reject(new Error(CANCELLED_MSG));
-      var recs = toRecords(recordIds.slice(i, i + PUT_RECORDS_LIMIT), contactTargetField, value);
+      var recs = toRecords(recordIds.slice(i, i + PUT_RECORDS_LIMIT), valuesByField);
       (function(records) {
         chain = chain.then(function() {
           if (getIsCancelled && getIsCancelled()) return Promise.reject(new Error(CANCELLED_MSG));
@@ -437,7 +440,6 @@
     var parentGroupIdField = config.parentGroupIdField;
     var contactAppId = config.contactAppId;
     var contactGroupIdField = config.contactGroupIdField;
-    var contactTargetField = config.contactTargetField;
 
     if (!parentGroupIdField) {
       return Promise.reject(new Error('親アプリの「団体ID」フィールドを設定してください。'));
@@ -553,24 +555,37 @@
               return updateParentRecord(appId, result.id, result.valuesByField);
             }).then(function() {
               updated++;
-              if (contactAppId && contactGroupIdField && contactTargetField) {
+              if (contactAppId && contactGroupIdField) {
                 var gid = (result.groupIdValue != null) ? String(result.groupIdValue).trim() : '';
                 if (gid === '') {
                   if (typeof console !== 'undefined' && console.log) console.log('[同期] 団体IDが空のため連絡先更新をスキップ レコードID=' + result.id);
                   reportProgress('団体処理中', updated, totalRecords, contactUpdated);
                   return;
                 }
+                var contactValuesByField = {};
+                validChildSettings.forEach(function(s) {
+                  var contactField = (s.contactTargetField != null && String(s.contactTargetField).trim() !== '') ? s.contactTargetField : null;
+                  if (!contactField) return;
+                  var val = result.valuesByField[s.targetFieldCode];
+                  contactValuesByField[contactField] = (val !== undefined && val !== null) ? val : '';
+                });
+                if (Object.keys(contactValuesByField).length === 0 && config.contactTargetField) {
+                  var firstVal = validChildSettings[0] && result.valuesByField[validChildSettings[0].targetFieldCode] !== undefined
+                    ? result.valuesByField[validChildSettings[0].targetFieldCode] : '';
+                  contactValuesByField[config.contactTargetField] = firstVal;
+                }
+                if (Object.keys(contactValuesByField).length === 0) {
+                  reportProgress('団体処理中', updated, totalRecords, contactUpdated);
+                  return;
+                }
                 if (typeof console !== 'undefined' && console.log) console.log('[同期] 連絡先更新開始 団体ID=' + gid);
-                var contactValue = validChildSettings[0] && result.valuesByField[validChildSettings[0].targetFieldCode] !== undefined
-                  ? result.valuesByField[validChildSettings[0].targetFieldCode]
-                  : '';
                 return getContactRecordIds(contactAppId, contactGroupIdField, result.groupIdValue)
                   .then(function(ids) {
                     if (ids.length === 0) {
                       reportProgress('団体処理中', updated, totalRecords, contactUpdated);
                       return;
                     }
-                    return updateContactRecords(contactAppId, contactTargetField, ids, contactValue, getIsCancelled)
+                    return updateContactRecords(contactAppId, ids, contactValuesByField, getIsCancelled)
                       .then(function() {
                         contactUpdated += ids.length;
                         reportProgress('団体処理中', updated, totalRecords, contactUpdated);
