@@ -156,7 +156,8 @@
       if (chunkIndex >= chunks.length) {
         var byGroup = {};
         allRecords.forEach(function(rec) {
-          var gv = (rec[groupIdFieldCode] && rec[groupIdFieldCode].value != null) ? String(rec[groupIdFieldCode].value) : '';
+          var gv = (rec[groupIdFieldCode] && rec[groupIdFieldCode].value != null) ? String(rec[groupIdFieldCode].value).trim() : '';
+          if (gv === '') return;
           if (!byGroup[gv]) byGroup[gv] = [];
           byGroup[gv].push(rec);
         });
@@ -214,15 +215,19 @@
    * @param {object} record - 親レコード
    * @param {object} childSetting - 子アプリ設定
    * @param {object} [cacheByGroupId] - 団体ID -> レコード配列（作成日時 desc）。省略時は getChildRecords で取得
+   * @param {string} [parentGroupIdValue] - 親レコードの団体ID（キャッシュ参照用。未指定時は record から childSetting.groupIdFieldCode で取得＝親アプリでは別名の可能性あり）
    */
-  function computeValueForOneRow(record, childSetting, cacheByGroupId) {
-    var groupIdValue = record[childSetting.groupIdFieldCode] ? record[childSetting.groupIdFieldCode].value : '';
+  function computeValueForOneRow(record, childSetting, cacheByGroupId, parentGroupIdValue) {
+    var groupIdValue = (parentGroupIdValue != null && parentGroupIdValue !== '') ? parentGroupIdValue : (record[childSetting.groupIdFieldCode] ? record[childSetting.groupIdFieldCode].value : '');
     if (groupIdValue === undefined || groupIdValue === null) groupIdValue = '';
     var gvStr = String(groupIdValue).trim();
 
     var childRecords;
     if (cacheByGroupId && typeof cacheByGroupId === 'object') {
       childRecords = cacheByGroupId[gvStr] || cacheByGroupId[groupIdValue] || [];
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[同期] 子アプリ反映 団体ID=' + gvStr + ' 子レコード数=' + childRecords.length + ' 反映先=' + (childSetting.targetFieldCode || ''));
+      }
       var value = computeValueFromChildRecords(childRecords, childSetting);
       return Promise.resolve({ targetFieldCode: childSetting.targetFieldCode, value: value });
     }
@@ -254,18 +259,20 @@
 
   /**
    * 1件の親レコードについて、全子アプリ行の結果を集計（キャッシュ利用時はAPI呼び出しなし）
+   * @param {string} parentGroupIdField - 親アプリの団体IDフィールドコード（ここから団体IDを読む）
    * 戻り値: Promise<{ id, groupIdValue, valuesByField }>
    */
-  function computeAllValuesForParent(record, childSettings, childRecordsCache) {
-    var groupIdValue = record[childSettings[0].groupIdFieldCode] ? record[childSettings[0].groupIdFieldCode].value : '';
+  function computeAllValuesForParent(record, childSettings, childRecordsCache, parentGroupIdField) {
+    var groupIdValue = (parentGroupIdField && record[parentGroupIdField]) ? record[parentGroupIdField].value : (record[childSettings[0] && childSettings[0].groupIdFieldCode] ? record[childSettings[0].groupIdFieldCode].value : '');
     if (groupIdValue === undefined || groupIdValue === null) groupIdValue = '';
+    var gvStr = String(groupIdValue).trim();
 
     var valid = childSettings.filter(function(s) { return s.targetFieldCode; });
     if (childRecordsCache && typeof childRecordsCache === 'object') {
       var valuesByField = {};
       var promisesForCache = valid.map(function(childSetting) {
         var cacheByGroupId = childRecordsCache[childCacheKey(childSetting)];
-        return computeValueForOneRow(record, childSetting, cacheByGroupId);
+        return computeValueForOneRow(record, childSetting, cacheByGroupId, gvStr || groupIdValue);
       });
       return Promise.all(promisesForCache).then(function(results) {
         var valuesByFieldSync = {};
@@ -281,7 +288,7 @@
     }
 
     var promises = valid.map(function(childSetting) {
-      return computeValueForOneRow(record, childSetting, null);
+      return computeValueForOneRow(record, childSetting, null, gvStr || groupIdValue);
     });
     return Promise.all(promises).then(function(results) {
       var valuesByField = {};
@@ -527,11 +534,20 @@
           });
         });
         return Promise.all(fetchPromises).then(function() {
-          if (typeof console !== 'undefined' && console.log) console.log('[同期] 子アプリ一括取得完了 団体数=' + uniqueGroupIds.length + ' 子アプリ数=' + validChildSettings.length);
+          if (typeof console !== 'undefined' && console.log) {
+            console.log('[同期] 子アプリ一括取得完了 団体数=' + uniqueGroupIds.length + ' 子アプリ数=' + validChildSettings.length);
+            validChildSettings.forEach(function(s) {
+              var cache = childRecordsCache[childCacheKey(s)];
+              var keys = cache ? Object.keys(cache) : [];
+              var totalRec = 0;
+              keys.forEach(function(k) { totalRec += (cache[k] && cache[k].length) || 0; });
+              console.log('[同期] 子アプリ appId=' + s.appId + ' 団体ID種類数=' + keys.length + ' 子レコード総数=' + totalRec + ' 団体ID例=' + (keys.slice(0, 3).join(', ') || '(なし)'));
+            });
+          }
           reportProgress('団体処理中', 0, totalRecords, 0);
           records.forEach(function(record) {
             chain = chain.then(function() {
-              return checkCancelled().then(function() { return computeAllValuesForParent(record, childSettings, childRecordsCache); });
+              return checkCancelled().then(function() { return computeAllValuesForParent(record, childSettings, childRecordsCache, parentGroupIdField); });
             }).then(function(result) {
             return checkCancelled().then(function() {
               return updateParentRecord(appId, result.id, result.valuesByField);
