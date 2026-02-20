@@ -1,0 +1,12 @@
+{
+  "name": "kintone-kuroshio-fes-plugin",
+  "version": "1.0.0",
+  "description": "祭典団体状況 一括同期プラグイン（黒潮祭）",
+  "private": true,
+  "scripts": {
+    "pack": "node scripts/ensure-icon.js && npx @kintone/plugin-packer . --out plugin.zip",
+    "pack:update": "node scripts/ensure-icon.js && npx @kintone/plugin-packer . --ppk ./*.ppk --out plugin.zip"
+  },
+  "keywords": ["kintone", "plugin"],
+  "license": "UNLICENSED"
+}

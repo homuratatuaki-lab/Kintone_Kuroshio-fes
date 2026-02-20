@@ -36,6 +36,9 @@
 ```
 Kintone_黒潮祭アプリ/
 ├── manifest.json       # プラグイン定義
+├── package.json        # npm スクリプト（パッケージ化用）
+├── scripts/
+│   └── ensure-icon.js  # image/icon.png が無い場合にプレースホルダーを生成
 ├── html/
 │   └── config.html     # 設定画面
 ├── css/
@@ -46,40 +49,61 @@ Kintone_黒潮祭アプリ/
 │   ├── sync.js         # 同期ロジック（子→親→連絡先）
 │   └── desktop.js      # 一覧画面に「一括同期」ボタン追加
 ├── image/
-│   └── icon.png        # プラグインアイコン（64×64 推奨・同梱のプレースホルダー可差し替え）
+│   └── icon.png        # プラグインアイコン（64×64 推奨・無ければ npm run pack で自動作成）
 └── README.md
+```
+
+## Git（バージョン管理）
+
+- リポジトリのクローン後、そのまま開発・パッケージ化が可能です。
+- **コミットしないもの**: `.gitignore` で除外しています。
+  - `plugin.zip` … パッケージ化で生成されるため
+  - `*.ppk` … 秘密鍵は手元で厳重に保管し、リポジトリには含めない
+  - `node_modules/` … npm の依存（本プラグインは `npx` 利用のため通常は空）
+  - `.cursor/`, `.DS_Store` など
+
+```bash
+# クローン
+git clone https://github.com/homuratatuaki-lab/Kintone_Kuroshio-fes.git
+cd Kintone_Kuroshio-fes
+
+# 変更をコミット
+git add .
+git commit -m "メッセージ"
+git push origin main
 ```
 
 ## パッケージ化（plugin.zip の作成）
 
-### 1. アイコン確認
+### 1. アイコン
 
-`image/icon.png` が存在することを確認してください。本リポジトリには簡易的なプレースホルダーが含まれています。任意の 64×64 PNG に差し替えて構いません。
+`image/icon.png` が無い場合は `npm run pack` 実行時に `scripts/ensure-icon.js` で 64×64 のプレースホルダーが自動作成されます。任意の 64×64 PNG に差し替えて構いません。
 
-### 2. パッケージ化コマンド（@kintone/plugin-packer）
+### 2. パッケージ化コマンド
 
 **事前条件**: Node.js がインストールされていること。
 
 **初回**（秘密鍵を新規生成）:
 
 ```bash
-cd "/Users/homura-macbookair/Downloads/Kintone_黒潮祭アプリ"
-npx @kintone/plugin-packer . --out plugin.zip
+npm run pack
 ```
 
-- **第1引数 `.`**: プラグインのルートディレクトリ（`manifest.json` があるフォルダ）を指定します。
-- **`--out plugin.zip`**: 出力する ZIP のファイル名・保存先。省略時は `plugin.zip` がプラグインルート直下に作成されます。
-- 実行後、**秘密鍵ファイル**（`<プラグインID>.ppk`。例: `gmeplpigcgdcjghkeacohcglfnkkaipa.ppk`）が同じディレクトリに生成されます。
+- 実行後、**秘密鍵ファイル**（`<プラグインID>.ppk`）がルートに生成されます。必ず手元で保管してください。
 
 **2回目以降**（既存プラグインを上書きする場合）:
 
-同じプラグインとして認識させるには、**初回に生成した .ppk ファイル**を必ず指定してください。
+同じプラグインとして認識させるには、**初回に生成した .ppk ファイル**を指定します。
+
+```bash
+npm run pack:update
+```
+
+- ルートに 1 つだけ `.ppk` がある場合に使用できます。複数ある場合は手動で指定してください:
 
 ```bash
 npx @kintone/plugin-packer . --ppk <プラグインID>.ppk --out plugin.zip
 ```
-
-- **`--ppk`**: 初回実行時に生成された `.ppk` ファイルのパス。ファイル名はプラグインID（英数字。例: `gmeplpigcgdcjghkeacohcglfnkkaipa.ppk`）です。ご自身の環境で生成されたファイル名に置き換えてください。
 
 **保存先の例**:
 
