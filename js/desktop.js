@@ -3,6 +3,15 @@
 
   var overlayId = 'festival-sync-overlay';
 
+  function getConfig() {
+    try {
+      if (window.FestivalSync && typeof window.FestivalSync.getConfig === 'function') {
+        return window.FestivalSync.getConfig();
+      }
+    } catch (e) {}
+    return null;
+  }
+
   function showOverlay(progressText, onCancelClick) {
     var el = document.getElementById(overlayId);
     if (el) {
@@ -120,8 +129,61 @@
     });
   }
 
+  function addContactListViewFilter(config) {
+    var header = kintone.app.getHeaderSpaceElement();
+    if (!header || !config || !config.contactAppListViewFilter) return;
+
+    var container = document.createElement('div');
+    container.className = 'festival-contact-filter';
+    container.innerHTML =
+      '<label>表示: </label>' +
+      '<select id="festival-contact-filter-select">' +
+        '<option value="all">全て</option>' +
+        '<option value="submitted">提出済あり</option>' +
+        '<option value="not_submitted">未提出のみ</option>' +
+      '</select>';
+    header.appendChild(container);
+
+    var selectEl = container.querySelector('#festival-contact-filter-select');
+    var filterField = (config.contactAppReadOnlyFields && config.contactAppReadOnlyFields[0]) ? config.contactAppReadOnlyFields[0] : null;
+
+    selectEl.addEventListener('change', function() {
+      var val = selectEl.value;
+      var q = '';
+      if (filterField && val === 'submitted') q = filterField + ' = "提出済"';
+      else if (filterField && val === 'not_submitted') q = filterField + ' = "未提出"';
+      try {
+        kintone.app.setQuery(q);
+      } catch (e) {}
+    });
+  }
+
   kintone.events.on('app.record.index.show', function() {
-    if (document.querySelector('.festival-sync-toolbar')) return;
-    addSyncButton();
+    var config = getConfig();
+    var isContact = config && config.mode === 'contact';
+
+    if (!isContact) {
+      if (!document.querySelector('.festival-sync-toolbar')) addSyncButton();
+    } else {
+      if (config && config.contactAppListViewFilter) addContactListViewFilter(config);
+    }
+  });
+
+  kintone.events.on('app.record.edit.show', function(ev) {
+    var config = getConfig();
+    if (!config || config.mode !== 'contact' || !config.contactAppReadOnlyFields || !config.contactAppReadOnlyFields.length) return ev;
+    config.contactAppReadOnlyFields.forEach(function(code) {
+      if (ev.record[code] && ev.record[code].disabled !== undefined) ev.record[code].disabled = true;
+    });
+    return ev;
+  });
+
+  kintone.events.on('app.record.create.show', function(ev) {
+    var config = getConfig();
+    if (!config || config.mode !== 'contact' || !config.contactAppReadOnlyFields || !config.contactAppReadOnlyFields.length) return ev;
+    config.contactAppReadOnlyFields.forEach(function(code) {
+      if (ev.record[code] && ev.record[code].disabled !== undefined) ev.record[code].disabled = true;
+    });
+    return ev;
   });
 })();

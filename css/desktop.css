@@ -96,3 +96,25 @@
 .festival-sync-toolbar .sync-message.success {
   color: #27ae60;
 }
+
+/* 連絡先モード：一覧絞り込み */
+.festival-contact-filter {
+  margin: 8px 0;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.festival-contact-filter label {
+  font-size: 14px;
+  color: #333;
+}
+
+.festival-contact-filter select {
+  padding: 6px 10px;
+  border: 1px solid #bdc3c7;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+}

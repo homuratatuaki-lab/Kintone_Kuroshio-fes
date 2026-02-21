@@ -2,76 +2,111 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>祭典団体状況 一括同期プラグイン - 設定</title>
+  <title>提出状況 一括同期 - 設定</title>
 </head>
 <body>
   <div id="config-container">
     <p id="config-loading" class="config-loading" style="display:none;">読み込み中…</p>
     <div id="config-error-message" class="config-error" role="alert" style="display:none;"></div>
 
+    <section class="config-card config-mode-card">
+      <h2 class="config-mode-title">このアプリの役割</h2>
+      <div class="config-mode-radios">
+        <label class="radio-label"><input type="radio" name="config-mode" value="parent" id="config-mode-parent"> 団体一覧（同期を実行）</label>
+        <label class="radio-label"><input type="radio" name="config-mode" value="contact" id="config-mode-contact"> 連絡先（同期先・表示用）</label>
+      </div>
+    </section>
+
+    <div id="parent-mode-config">
     <section class="config-card card-step">
       <div class="step-head">
         <span class="step-num">1</span>
         <div>
-          <h2>どの申請書をチェックするか</h2>
-          <p class="section-hint">パンフレット・原稿など、提出状況を見たい申請書アプリを選びます。</p>
+          <h2>団体一覧の紐付け</h2>
+          <p class="section-hint">団体1件に対応する項目（レコード番号・団体IDなど）を選びます。</p>
         </div>
       </div>
-      <div class="table-wrap">
-        <table id="child-app-table" class="config-table">
-          <thead>
-          <tr>
-            <th>申請書アプリ</th>
-            <th>申請書側の紐付けキー</th>
-            <th>連携モード</th>
-            <th>コピー元（モードで使用時）</th>
-            <th>団体一覧に表示する欄</th>
-            <th>連絡先に表示する欄（任意）</th>
-            <th></th>
-          </tr>
-          </thead>
-          <tbody id="child-app-tbody"></tbody>
-        </table>
+      <div class="field-block">
+        <label for="parent-group-id-field" class="field-label">紐付けキー</label>
+        <select id="parent-group-id-field" class="field-input"></select>
       </div>
-      <button type="button" id="add-child-row" class="btn btn-add">+ 申請書を1件追加</button>
     </section>
 
     <section class="config-card card-step">
       <div class="step-head">
         <span class="step-num">2</span>
         <div>
-          <h2>団体一覧で「どの項目」で団体を識別するか</h2>
-          <p class="section-hint">申請書と団体一覧を同じ値で紐付けます。レコード番号や団体IDなど、1団体1つに決まる項目を選んでください。</p>
+          <h2>連絡先の設定</h2>
+          <p class="section-hint">結果を反映するアプリと、団体と同じ値の紐付けキーを選びます。</p>
         </div>
       </div>
       <div class="field-block">
-        <label for="parent-group-id-field" class="field-label">団体一覧アプリの紐付けキー</label>
-        <select id="parent-group-id-field" class="field-input"></select>
+        <label for="contact-app-id" class="field-label">連絡先アプリ</label>
+        <select id="contact-app-id" class="field-input"></select>
+      </div>
+      <div class="field-block">
+        <label for="contact-group-id-field" class="field-label">紐付けキー</label>
+        <select id="contact-group-id-field" class="field-input"></select>
       </div>
     </section>
 
-    <section class="config-card card-step card-optional">
+    <section class="config-card card-step">
       <div class="step-head">
         <span class="step-num">3</span>
         <div>
-          <h2>連絡先アプリにも同じ結果を反映する（任意）</h2>
-          <p class="section-hint">使わない場合は何も選ばずに保存してかまいません。</p>
+          <h2>申請書の指定</h2>
+          <p class="section-hint">提出状況を集計する申請書アプリを追加します。</p>
         </div>
       </div>
-      <div class="field-block">
-        <label class="field-label">連絡先アプリ</label>
-        <div class="app-select-row">
-          <select id="contact-app-id" class="field-input"></select>
-          <button type="button" id="contact-app-verify" class="btn btn-verify">アプリ名を確認</button>
-        </div>
-        <span id="contact-app-name-display" class="app-name-display"></span>
+      <div class="table-wrap">
+        <p class="table-scroll-hint">※ 横スクロールで全体を表示</p>
+        <table id="child-app-table" class="config-table">
+          <thead>
+            <tr>
+              <th>申請書アプリ</th>
+              <th>紐付けキー</th>
+              <th>連携モード</th>
+              <th>取得する欄（内容取得時）</th>
+              <th class="th-flow"><span class="th-arrow">→</span> 団体一覧に表示</th>
+              <th class="th-flow"><span class="th-arrow">→</span> 連絡先に表示</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="child-app-tbody"></tbody>
+        </table>
       </div>
-      <div class="field-block">
-        <label for="contact-group-id-field" class="field-label">連絡先アプリの紐付けキー</label>
-        <select id="contact-group-id-field" class="field-input"></select>
-      </div>
-      <p class="section-hint" style="margin-top:8px;">上記「1. チェックする申請書」の各行で、連絡先のどの欄にその申請書の結果を出すか指定できます。</p>
+      <p class="section-hint section-flow-hint" style="margin-top:8px;"><span class="flow-arrow">申請書の結果</span> <span class="flow-arrow-symbol">→</span> 団体一覧・連絡先の「表示」欄に反映されます。</p>
+      <button type="button" id="add-child-row" class="btn btn-add">+ 申請書を追加</button>
     </section>
+    </div>
+
+    <div id="contact-mode-config" style="display:none;">
+    <section class="config-card card-step">
+      <div class="step-head">
+        <span class="step-num">1</span>
+        <div>
+          <h2>フラグ欄の編集制限（APIからのみ更新可）</h2>
+          <p class="section-hint">同期で更新される欄を一覧で編集不可にすると、手動変更を防げます。</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <label class="field-label">編集不可にする欄（複数選択可）</label>
+        <div id="contact-readonly-fields" class="checkbox-list"></div>
+      </div>
+    </section>
+    <section class="config-card card-step">
+      <div class="step-head">
+        <span class="step-num">2</span>
+        <div>
+          <h2>一覧の絞り込み</h2>
+          <p class="section-hint">フラグの状態（提出済/未提出）で一覧を絞り込む切り替えを表示します。</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <label class="checkbox-label"><input type="checkbox" id="contact-listview-filter"> 一覧でフラグによる絞り込みをする</label>
+      </div>
+    </section>
+    </div>
 
     <div class="actions">
       <button type="button" id="btn-cancel" class="btn btn-ghost">キャンセル</button>
