@@ -2,6 +2,15 @@
   'use strict';
 
   var overlayId = 'festival-sync-overlay';
+  var LABEL_SUBMITTED = '提出済';
+
+  function getConfig() {
+    try {
+      return (window.FestivalSync && window.FestivalSync.getConfig) ? window.FestivalSync.getConfig() : null;
+    } catch (e) {
+      return null;
+    }
+  }
 
   function showOverlay(progressText, onCancelClick) {
     var el = document.getElementById(overlayId);
@@ -120,8 +129,88 @@
     });
   }
 
+  function addContactListFilter(fields) {
+    if (!fields || fields.length === 0) return;
+    var header = kintone.app.getHeaderSpaceElement();
+    if (!header) return;
+    var currentQuery = (location.search || '').match(/query=([^&]+)/);
+    var currentEnc = currentQuery ? currentQuery[1] : '';
+    var currentDec = currentEnc ? decodeURIComponent(currentEnc) : '';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'festival-contact-filter';
+    wrap.style.marginBottom = '12px';
+    var select = document.createElement('select');
+    select.id = 'festival-contact-filter-select';
+    select.style.padding = '6px 10px';
+    select.style.fontSize = '13px';
+    var opts = [
+      { value: '', label: '全て' },
+      { value: 'submitted', label: '提出済あり' },
+      { value: 'not_submitted', label: '未提出のみ' }
+    ];
+    opts.forEach(function(o) {
+      var opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.label;
+      if (o.value === 'submitted' && /^\(.*\)$/.test(currentDec) && currentDec.indexOf(LABEL_SUBMITTED) !== -1) opt.selected = true;
+      else if (o.value === 'not_submitted' && currentDec.indexOf('!="' + LABEL_SUBMITTED + '"') !== -1) opt.selected = true;
+      else if (o.value === '' && !currentEnc) opt.selected = true;
+      select.appendChild(opt);
+    });
+    var label = document.createElement('label');
+    label.style.marginRight = '8px';
+    label.textContent = '表示: ';
+    label.appendChild(select);
+    wrap.appendChild(label);
+    header.appendChild(wrap);
+
+    select.addEventListener('change', function() {
+      var val = select.value;
+      var query = '';
+      if (val === 'submitted') {
+        query = fields.map(function(f) { return f + ' = "' + LABEL_SUBMITTED + '"'; }).join(' or ');
+        if (fields.length > 1) query = '(' + query + ')';
+      } else if (val === 'not_submitted') {
+        query = fields.map(function(f) { return f + ' != "' + LABEL_SUBMITTED + '"'; }).join(' and ');
+        if (fields.length > 1) query = '(' + query + ')';
+      }
+      var search = (location.search || '').replace(/\bquery=[^&]*&?/g, '').replace(/&$/, '');
+      var sep = search ? '&' : '?';
+      var newQuery = query ? sep + 'query=' + encodeURIComponent(query) : '';
+      location.href = location.pathname + search + newQuery + (location.hash || '');
+    });
+  }
+
+  function applyContactReadOnly(event) {
+    var config = getConfig();
+    if (!config || config.mode !== 'contact') return event;
+    var codes = config.contactAppReadOnlyFields;
+    if (!codes || !codes.length) return event;
+    codes.forEach(function(code) {
+      if (event.record[code]) event.record[code].disabled = true;
+    });
+    return event;
+  }
+
   kintone.events.on('app.record.index.show', function() {
+    var config = getConfig();
+    if (config && config.mode === 'contact') {
+      if (document.querySelector('.festival-contact-filter')) return;
+      if (config.contactAppListViewFilter && config.contactAppReadOnlyFields && config.contactAppReadOnlyFields.length > 0) {
+        addContactListFilter(config.contactAppReadOnlyFields);
+      }
+      return;
+    }
     if (document.querySelector('.festival-sync-toolbar')) return;
     addSyncButton();
+  });
+
+  kintone.events.on('app.record.edit.show', function(event) {
+    return applyContactReadOnly(event);
+  });
+
+  kintone.events.on('app.record.create.show', function(event) {
+    return applyContactReadOnly(event);
   });
 })();

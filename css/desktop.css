@@ -43,6 +43,17 @@
   background: #c0392b;
 }
 
+/* 連絡先アプリ：一覧フラグ絞り込み */
+.festival-contact-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.festival-contact-filter select {
+  min-width: 140px;
+}
+
 /* スピナー */
 .festival-sync-spinner {
   width: 48px;

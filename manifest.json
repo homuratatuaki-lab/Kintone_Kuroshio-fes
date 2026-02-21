@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "type": "APP",
   "name": {
-    "ja": "祭典団体状況 一括同期プラグイン（Advanced）",
-    "en": "Festival Organization Status Synchronizer (Advanced)"
+    "ja": "黒潮祭 提出状況 一括同期",
+    "en": "Kuroshio Festival – Submit Status Sync"
   },
   "description": {
-    "ja": "団体管理アプリから子アプリの申込状況を集計し、団体管理・連絡先アプリを一括更新します。",
-    "en": "Aggregates child app status into parent app and syncs to contact app."
+    "ja": "団体一覧・連絡先と申請書の提出状況を同期し、一括で更新します。",
+    "en": "Syncs submission status from application forms to organization list and contact app."
   },
   "icon": "image/icon.png",
   "homepage_url": {"ja": "https://example.com", "en": "https://example.com"},

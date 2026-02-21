@@ -37,11 +37,14 @@
 
   function getDefaultConfig() {
     return {
+      mode: 'parent',
       childAppSettings: [],
       parentGroupIdField: '',
       contactAppId: '',
       contactGroupIdField: '',
-      contactTargetField: ''
+      contactTargetField: '',
+      contactAppReadOnlyFields: [],
+      contactAppListViewFilter: false
     };
   }
 
@@ -130,10 +133,14 @@
     return div.innerHTML;
   }
 
-  function fillSelect(selectEl, options, selectedValue, emptyLabel) {
+  function fillSelect(selectEl, options, selectedValue, emptyLabel, allowEmpty) {
     if (!selectEl) return;
     emptyLabel = emptyLabel || '— 選択 —';
-    selectEl.innerHTML = '<option value="">' + escapeHtml(emptyLabel) + '</option>';
+    var emptyOption = '<option value="">' + escapeHtml(emptyLabel) + '</option>';
+    if (allowEmpty !== true) {
+      emptyOption = '<option value="" disabled>' + escapeHtml(emptyLabel) + '</option>';
+    }
+    selectEl.innerHTML = emptyOption;
     options.forEach(function(opt) {
       var val = (opt.value != null ? opt.value : opt.code || opt.id);
       var label;
@@ -185,12 +192,17 @@
     tr.appendChild(document.createElement('td')).appendChild(groupSelect);
     var modeTd = tr.insertCell(-1);
     modeTd.className = 'mode-cell';
-    modeTd.innerHTML =
-      '<select class="child-mode">' +
-        '<option value="' + MODE_EXISTENCE + '"' + (rowData.mode === MODE_EXISTENCE ? ' selected' : '') + '>提出されたかチェックする</option>' +
-        '<option value="' + MODE_COPY + '"' + (rowData.mode === MODE_COPY ? ' selected' : '') + '>提出内容をコピーする</option>' +
-      '</select>';
-    tr.appendChild(document.createElement('td')).appendChild(copySelect);
+    var isCopyMode = rowData.mode === MODE_COPY;
+    var modeSelect = document.createElement('select');
+    modeSelect.className = 'child-mode';
+    modeSelect.innerHTML =
+      '<option value="' + MODE_EXISTENCE + '"' + (!isCopyMode ? ' selected' : '') + '>提出チェック</option>' +
+      '<option value="' + MODE_COPY + '"' + (isCopyMode ? ' selected' : '') + '>内容取得</option>';
+    modeTd.appendChild(modeSelect);
+    var copyTd = tr.insertCell(-1);
+    copyTd.className = 'copy-source-cell' + (isCopyMode ? '' : ' grayed-out');
+    copyTd.appendChild(copySelect);
+    copySelect.disabled = !isCopyMode;
     tr.appendChild(document.createElement('td')).appendChild(targetSelect);
     tr.appendChild(document.createElement('td')).appendChild(contactTargetSelect);
     var removeTd = tr.insertCell(-1);
@@ -200,13 +212,20 @@
     removeBtn.textContent = '削除';
     removeTd.appendChild(removeBtn);
 
-    fillSelect(appSelect, appList, rowData.appId, '申請書アプリを選択');
-    fillSelect(groupSelect, [], rowData.groupIdFieldCode, '紐付けキー');
-    fillSelect(copySelect, [], rowData.copySourceFieldCode, 'コピー元（使用時のみ）');
-    fillSelect(targetSelect, parentFields, rowData.targetFieldCode, '表示する欄を選択');
-    fillSelect(contactTargetSelect, contactFields, rowData.contactTargetField, '—');
+    fillSelect(appSelect, appList, rowData.appId, '申請書アプリを選択', false);
+    fillSelect(groupSelect, [], rowData.groupIdFieldCode, '紐付けキー', false);
+    fillSelect(copySelect, [], rowData.copySourceFieldCode, '取得する欄を選択', false);
+    fillSelect(targetSelect, parentFields, rowData.targetFieldCode, '表示する欄を選択', false);
+    fillSelect(contactTargetSelect, contactFields, rowData.contactTargetField, '—', true);
 
     removeBtn.addEventListener('click', function() { tr.remove(); });
+
+    modeSelect.addEventListener('change', function() {
+      var mode = modeSelect.value;
+      var isCopy = (mode === MODE_COPY);
+      copySelect.disabled = !isCopy;
+      if (isCopy) copyTd.classList.remove('grayed-out'); else copyTd.classList.add('grayed-out');
+    });
 
     function setFieldSelectsLoading(loading) {
       groupSelect.disabled = copySelect.disabled = loading;
@@ -218,14 +237,14 @@
 
     appSelect.addEventListener('change', function() {
       var appId = (appSelect.value || '').trim();
-      groupSelect.innerHTML = '<option value="">— 選択 —</option>';
-      copySelect.innerHTML = '<option value="">— 選択 —</option>';
+      groupSelect.innerHTML = '<option value="" disabled>— 選択 —</option>';
+      copySelect.innerHTML = '<option value="" disabled>— 選択 —</option>';
       if (!appId || appId === 'undefined') return;
       setFieldSelectsLoading(true);
       fetchFormFields(appId)
         .then(function(fields) {
           fillSelect(groupSelect, fields, null, '紐付けキー');
-          fillSelect(copySelect, fields, null, 'コピー元');
+          fillSelect(copySelect, fields, null, '取得する欄を選択');
         })
         .catch(function(err) {
           showError('参照先アプリのフィールド取得に失敗しました: ' + (err.message || err));
@@ -239,7 +258,7 @@
       fetchFormFields(rowData.appId)
         .then(function(fields) {
           fillSelect(groupSelect, fields, rowData.groupIdFieldCode, '紐付けキー');
-          fillSelect(copySelect, fields, rowData.copySourceFieldCode, 'コピー元');
+          fillSelect(copySelect, fields, rowData.copySourceFieldCode, '取得する欄を選択');
         })
         .catch(function(err) {
           showError('子アプリのフィールド取得に失敗しました: ' + (err.message || err));
@@ -274,7 +293,7 @@
     for (var i = 0; i < selects.length; i++) {
       var sel = selects[i];
       var current = (sel.value || '').trim();
-      fillSelect(sel, contactFields, current || null, '—');
+      fillSelect(sel, contactFields, current || null, '—', true);
     }
   }
 
@@ -287,6 +306,32 @@
     return null;
   }
 
+  function switchModeUI(mode) {
+    var parentBlock = document.getElementById('parent-mode-config');
+    var contactBlock = document.getElementById('contact-mode-config');
+    var isContact = (mode === 'contact');
+    if (parentBlock) parentBlock.style.display = isContact ? 'none' : '';
+    if (contactBlock) contactBlock.style.display = isContact ? '' : 'none';
+  }
+
+  function fillContactReadOnlyFields(fields, selectedCodes) {
+    var container = document.getElementById('contact-readonly-fields');
+    if (!container) return;
+    container.innerHTML = '';
+    selectedCodes = selectedCodes || [];
+    (fields || []).forEach(function(f) {
+      var label = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'contact-readonly-field-cb';
+      cb.dataset.fieldCode = f.code;
+      cb.checked = selectedCodes.indexOf(f.code) !== -1;
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + (f.label || f.code)));
+      container.appendChild(label);
+    });
+  }
+
   function loadConfig() {
     clearError();
     var loadingEl = document.getElementById('config-loading');
@@ -296,6 +341,8 @@
     var raw = (pluginId && kintone.plugin.app.getConfig) ? kintone.plugin.app.getConfig(pluginId) : null;
     var config = (raw && raw.config) ? (function() { try { return JSON.parse(raw.config); } catch (e) { return null; } })() : null;
     var c = config || getDefaultConfig();
+    var mode = (c.mode === 'contact') ? 'contact' : 'parent';
+    if (!c.contactAppReadOnlyFields || !Array.isArray(c.contactAppReadOnlyFields)) c.contactAppReadOnlyFields = [];
     if (!c.childAppSettings || !Array.isArray(c.childAppSettings)) {
       c.childAppSettings = [];
     }
@@ -304,6 +351,30 @@
     }
 
     var parentAppId = getParentAppId();
+    var modeParent = document.getElementById('config-mode-parent');
+    var modeContact = document.getElementById('config-mode-contact');
+    if (modeParent) modeParent.checked = (mode === 'parent');
+    if (modeContact) modeContact.checked = (mode === 'contact');
+    switchModeUI(mode);
+
+    if (mode === 'contact') {
+      var listFilterCb = document.getElementById('contact-listview-filter');
+      if (listFilterCb) listFilterCb.checked = !!c.contactAppListViewFilter;
+      var contactAppIdForFields = parentAppId || (typeof kintone !== 'undefined' && kintone.app && kintone.app.getId ? kintone.app.getId() : null);
+      fetchFormFields(contactAppIdForFields).then(function(fields) {
+        fillContactReadOnlyFields(fields, c.contactAppReadOnlyFields);
+      }).catch(function() {
+        fillContactReadOnlyFields([], c.contactAppReadOnlyFields);
+      }).then(function() {
+        if (loadingEl) loadingEl.style.display = 'none';
+      });
+    }
+
+    if (mode !== 'parent') {
+      if (loadingEl) loadingEl.style.display = 'none';
+      return;
+    }
+
     var tbody = document.getElementById('child-app-tbody');
     var parentGroupSelect = document.getElementById('parent-group-id-field');
     var contactAppSelect = document.getElementById('contact-app-id');
@@ -342,7 +413,7 @@
     fetchAppList()
       .then(function(appList) {
         cache.appList = appList;
-        fillSelect(contactAppSelect, appList.map(function(a) { return { id: a.id, name: a.name }; }), c.contactAppId, '連絡先アプリを選択');
+        fillSelect(contactAppSelect, appList.map(function(a) { return { id: a.id, name: a.name }; }), c.contactAppId, '連絡先を選択');
 
         return loadParentFields.then(function(parentFields) {
           return loadContactFields.then(function(contactFields) {
@@ -374,7 +445,6 @@
           contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
           contactGroupSelect.disabled = false;
           fillAllContactTargetSelects([]);
-          updateContactAppNameDisplay('');
           return;
         }
         fetchFormFields(appId)
@@ -389,56 +459,92 @@
           })
           .then(function() {
             contactGroupSelect.disabled = false;
-            updateContactAppNameDisplay(appId);
           });
       });
     }
-    if (c.contactAppId && String(c.contactAppId) !== 'undefined') updateContactAppNameDisplay(c.contactAppId);
   }
 
-  function updateContactAppNameDisplay(appId) {
-    var el = document.getElementById('contact-app-name-display');
-    if (!el) return;
-    if (!appId || appId === 'undefined') {
-      el.textContent = '';
-      return;
-    }
-    var name = '';
-    for (var i = 0; i < cache.appList.length; i++) {
-      if (String(cache.appList[i].id) === String(appId)) {
-        name = cache.appList[i].name || '';
-        break;
-      }
-    }
-    el.textContent = name ? '✓ ' + name : '';
+  function clearFieldErrors() {
+    document.querySelectorAll('.config-input-error').forEach(function(el) {
+      el.classList.remove('config-input-error');
+    });
   }
 
   function saveConfig() {
     clearError();
-    var parentGroupIdField = document.getElementById('parent-group-id-field').value.trim();
-    if (!parentGroupIdField) {
-      showError('「2. 共通の紐付けキー」で団体一覧アプリの紐付けキーを選択してください。');
+    clearFieldErrors();
+    var modeParent = document.getElementById('config-mode-parent');
+    var modeContact = document.getElementById('config-mode-contact');
+    var isContactMode = modeContact && modeContact.checked;
+
+    if (isContactMode) {
+      var readOnlyCodes = [];
+      var checkboxes = document.querySelectorAll('.contact-readonly-field-cb:checked');
+      for (var i = 0; i < checkboxes.length; i++) {
+        var code = checkboxes[i].dataset.fieldCode;
+        if (code) readOnlyCodes.push(code);
+      }
+      var listFilterCb = document.getElementById('contact-listview-filter');
+      var config = {
+        mode: 'contact',
+        contactAppReadOnlyFields: readOnlyCodes,
+        contactAppListViewFilter: !!(listFilterCb && listFilterCb.checked)
+      };
+      try {
+        kintone.plugin.app.setConfig({ config: JSON.stringify(config) }, function() {
+          clearError();
+          alert('設定を保存しました。');
+        });
+      } catch (e) {
+        showError('保存に失敗しました: ' + (e.message || e));
+      }
       return;
     }
-    var childRows = collectChildRows(document.getElementById('child-app-tbody'));
+
+    var parentGroupEl = document.getElementById('parent-group-id-field');
+    var parentGroupIdField = parentGroupEl ? parentGroupEl.value.trim() : '';
+    if (!parentGroupIdField) {
+      showError('「団体一覧の紐付け」で紐付けキーを選択してください。');
+      if (parentGroupEl) parentGroupEl.classList.add('config-input-error');
+      return;
+    }
+    var contactAppEl = document.getElementById('contact-app-id');
+    var contactGroupEl = document.getElementById('contact-group-id-field');
+    var contactAppId = contactAppEl ? contactAppEl.value.trim() : '';
+    var contactGroupIdField = contactGroupEl ? contactGroupEl.value.trim() : '';
+    if (!contactAppId || String(contactAppId) === 'undefined') {
+      showError('「連絡先の設定」で連絡先アプリを選択してください。');
+      if (contactAppEl) contactAppEl.classList.add('config-input-error');
+      if (contactGroupEl) contactGroupEl.classList.add('config-input-error');
+      return;
+    }
+    if (!contactGroupIdField) {
+      showError('「連絡先の設定」で紐付けキーを選択してください。');
+      if (contactGroupEl) contactGroupEl.classList.add('config-input-error');
+      return;
+    }
+    var tbody = document.getElementById('child-app-tbody');
+    var childRows = collectChildRows(tbody);
     for (var i = 0; i < childRows.length; i++) {
       var row = childRows[i];
       if (row.appId && String(row.appId) !== 'undefined') {
         if (!row.groupIdFieldCode || !row.targetFieldCode) {
-          showError('1. チェックする申請書の' + (i + 1) + '行目で、申請書アプリを選んだら「紐付けキー」と「表示する欄」を選択してください。');
+          showError('「申請書の指定」の' + (i + 1) + '行目で、紐付けキーと表示する欄を選択してください。');
+          var tr = tbody && tbody.rows[i];
+          if (tr) {
+            var appSel = tr.querySelector('.child-app-id');
+            var groupSel = tr.querySelector('.child-group-id-field');
+            var targetSel = tr.querySelector('.child-target-field');
+            if (appSel) appSel.classList.add('config-input-error');
+            if (groupSel) groupSel.classList.add('config-input-error');
+            if (targetSel) targetSel.classList.add('config-input-error');
+          }
           return;
         }
       }
     }
-    var contactAppId = document.getElementById('contact-app-id').value.trim();
-    var contactGroupIdField = document.getElementById('contact-group-id-field').value.trim();
-    if (contactAppId && String(contactAppId) !== 'undefined') {
-      if (!contactGroupIdField) {
-        showError('3. 連絡先を利用する場合は「連絡先アプリの紐付けキー」を選択してください。');
-        return;
-      }
-    }
     var config = {
+      mode: 'parent',
       childAppSettings: childRows,
       parentGroupIdField: parentGroupIdField,
       contactAppId: contactAppId,
@@ -457,24 +563,59 @@
   }
 
   function init() {
-    document.getElementById('add-child-row').addEventListener('click', function() {
-      var parentFields = cache.parentFields.length ? cache.parentFields : [];
-      var appList = cache.appList.map(function(a) { return { id: a.id, name: a.name }; });
-      var contactFields = cache.contactFields || [];
-      addChildRow(document.getElementById('child-app-tbody'), null, appList, parentFields, contactFields);
-    });
+    var modeParent = document.getElementById('config-mode-parent');
+    var modeContact = document.getElementById('config-mode-contact');
+    if (modeParent) {
+      modeParent.addEventListener('change', function() {
+        switchModeUI('parent');
+      });
+    }
+    if (modeContact) {
+      modeContact.addEventListener('change', function() {
+        switchModeUI('contact');
+        var container = document.getElementById('contact-readonly-fields');
+        if (container && container.children.length === 0) {
+          var appId = (typeof kintone !== 'undefined' && kintone.app && kintone.app.getId) ? kintone.app.getId() : null;
+          if (appId) {
+            fetchFormFields(appId).then(function(fields) {
+              fillContactReadOnlyFields(fields, []);
+            }).catch(function() {});
+          }
+        }
+      });
+    }
 
-    var contactVerifyBtn = document.getElementById('contact-app-verify');
-    if (contactVerifyBtn) {
-      contactVerifyBtn.addEventListener('click', function() {
-        var contactAppSelect = document.getElementById('contact-app-id');
-        var appId = (contactAppSelect && contactAppSelect.value) ? contactAppSelect.value.trim() : '';
-        updateContactAppNameDisplay(appId && appId !== 'undefined' ? appId : '');
+    var addRowBtn = document.getElementById('add-child-row');
+    if (addRowBtn) {
+      addRowBtn.addEventListener('click', function() {
+        var parentFields = cache.parentFields.length ? cache.parentFields : [];
+        var appList = cache.appList.map(function(a) { return { id: a.id, name: a.name }; });
+        var contactFields = cache.contactFields || [];
+        addChildRow(document.getElementById('child-app-tbody'), null, appList, parentFields, contactFields);
       });
     }
 
     document.getElementById('btn-save').addEventListener('click', saveConfig);
     document.getElementById('btn-cancel').addEventListener('click', function() { history.back(); });
+
+    function removeErrorOnChange(el) {
+      if (el && el.addEventListener) {
+        el.addEventListener('change', function() {
+          this.classList.remove('config-input-error');
+        });
+      }
+    }
+    removeErrorOnChange(document.getElementById('parent-group-id-field'));
+    removeErrorOnChange(document.getElementById('contact-app-id'));
+    removeErrorOnChange(document.getElementById('contact-group-id-field'));
+    var childTbody = document.getElementById('child-app-tbody');
+    if (childTbody) {
+      childTbody.addEventListener('change', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('config-input-error')) {
+          e.target.classList.remove('config-input-error');
+        }
+      });
+    }
 
     loadConfig();
   }

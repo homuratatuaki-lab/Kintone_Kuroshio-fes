@@ -4,9 +4,19 @@
   "description": "祭典団体状況 一括同期プラグイン（黒潮祭）",
   "private": true,
   "scripts": {
-    "pack": "node scripts/ensure-icon.js && npx @kintone/plugin-packer . --out plugin.zip",
-    "pack:update": "node scripts/ensure-icon.js && npx @kintone/plugin-packer . --ppk ./*.ppk --out plugin.zip"
+    "build:css": "tailwindcss -i ./src/config.css -o ./css/config.css",
+    "pack": "npm run build:css && node scripts/ensure-icon.js && kintone-plugin-packer . --out plugin.zip",
+    "pack:update": "npm run build:css && node scripts/ensure-icon.js && kintone-plugin-packer . --ppk ./*.ppk --out plugin.zip"
   },
-  "keywords": ["kintone", "plugin"],
+  "devDependencies": {
+    "@kintone/plugin-packer": "^9.1.0",
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19"
+  },
+  "keywords": [
+    "kintone",
+    "plugin"
+  ],
   "license": "UNLICENSED"
 }

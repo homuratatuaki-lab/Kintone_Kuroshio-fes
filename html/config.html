@@ -2,80 +2,126 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>祭典団体状況 一括同期プラグイン - 設定</title>
+  <title>提出状況 一括同期 - 設定</title>
 </head>
-<body>
-  <div id="config-container">
-    <p id="config-loading" class="config-loading" style="display:none;">読み込み中…</p>
-    <div id="config-error-message" class="config-error" role="alert" style="display:none;"></div>
+<body class="font-sans text-slate-800 antialiased">
+  <div id="config-container" class="max-w-full mx-auto px-6 py-8 box-border">
+    <p id="config-loading" class="hidden py-3 px-4 mb-6 bg-sky-50 text-slate-800 rounded-lg text-sm" style="display:none;">読み込み中…</p>
+    <div id="config-error-message" class="config-error hidden mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg text-red-700 text-sm" role="alert" style="display:none;"></div>
 
-    <section class="config-card card-step">
-      <div class="step-head">
-        <span class="step-num">1</span>
+    <section class="config-mode-card mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <h2 class="config-mode-title mb-3 text-base font-semibold text-slate-800">このアプリの役割</h2>
+      <div class="config-mode-radios flex flex-wrap gap-x-6 gap-y-2">
+        <label class="radio-label inline-flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="config-mode" value="parent" id="config-mode-parent" class="m-0">
+          <span>団体一覧（同期を実行）</span>
+        </label>
+        <label class="radio-label inline-flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="config-mode" value="contact" id="config-mode-contact" class="m-0">
+          <span>連絡先（同期先・表示用）</span>
+        </label>
+      </div>
+    </section>
+
+    <div id="parent-mode-config">
+    <section class="config-card card-step bg-white rounded-xl shadow-sm border border-slate-200 p-7 mb-8">
+      <div class="step-head flex items-start gap-4 mb-6">
+        <span class="step-num inline-flex items-center justify-center w-9 h-9 min-w-[2.25rem] rounded-full bg-blue-500 text-white font-bold text-base">1</span>
         <div>
-          <h2>どの申請書をチェックするか</h2>
-          <p class="section-hint">パンフレット・原稿など、提出状況を見たい申請書アプリを選びます。</p>
+          <h2 class="m-0 mb-1.5 text-lg font-semibold text-slate-800">団体一覧の紐付け</h2>
+          <p class="section-hint m-0 text-sm text-slate-500 leading-relaxed">団体1件に対応する項目（レコード番号・団体IDなど）を選びます。</p>
         </div>
       </div>
-      <div class="table-wrap">
-        <table id="child-app-table" class="config-table">
+      <div class="field-block mb-5">
+        <label for="parent-group-id-field" class="field-label block mb-1.5 text-sm font-semibold text-slate-700">紐付けキー</label>
+        <select id="parent-group-id-field" class="field-input w-full max-w-md py-2.5 px-3 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"></select>
+      </div>
+    </section>
+
+    <section class="config-card card-step bg-white rounded-xl shadow-sm border border-slate-200 p-7 mb-8">
+      <div class="step-head flex items-start gap-4 mb-6">
+        <span class="step-num inline-flex items-center justify-center w-9 h-9 min-w-[2.25rem] rounded-full bg-blue-500 text-white font-bold text-base">2</span>
+        <div>
+          <h2 class="m-0 mb-1.5 text-lg font-semibold text-slate-800">連絡先の設定</h2>
+          <p class="section-hint m-0 text-sm text-slate-500 leading-relaxed">結果を反映するアプリと、団体と同じ値の紐付けキーを選びます。</p>
+        </div>
+      </div>
+      <div class="field-block mb-5">
+        <label for="contact-app-id" class="field-label block mb-1.5 text-sm font-semibold text-slate-700">連絡先アプリ</label>
+        <select id="contact-app-id" class="field-input w-full max-w-md py-2.5 px-3 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"></select>
+      </div>
+      <div class="field-block mb-0">
+        <label for="contact-group-id-field" class="field-label block mb-1.5 text-sm font-semibold text-slate-700">紐付けキー</label>
+        <select id="contact-group-id-field" class="field-input w-full max-w-md py-2.5 px-3 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"></select>
+      </div>
+    </section>
+
+    <section class="config-card card-step bg-white rounded-xl shadow-sm border border-slate-200 p-7 mb-10">
+      <div class="step-head flex items-start gap-4 mb-6">
+        <span class="step-num inline-flex items-center justify-center w-9 h-9 min-w-[2.25rem] rounded-full bg-blue-500 text-white font-bold text-base">3</span>
+        <div>
+          <h2 class="m-0 mb-1.5 text-lg font-semibold text-slate-800">申請書の指定</h2>
+          <p class="section-hint m-0 text-sm text-slate-500 leading-relaxed">提出状況を集計する申請書アプリを追加します。</p>
+        </div>
+      </div>
+      <div class="table-wrap mb-4 overflow-x-auto">
+        <p class="table-scroll-hint mb-2 text-xs text-slate-400">※ 横スクロールで全体を表示</p>
+        <table id="child-app-table" class="config-table w-full min-w-[860px] border-collapse text-sm">
           <thead>
-          <tr>
-            <th>申請書アプリ</th>
-            <th>申請書側の紐付けキー</th>
-            <th>連携モード</th>
-            <th>コピー元（モードで使用時）</th>
-            <th>団体一覧に表示する欄</th>
-            <th>連絡先に表示する欄（任意）</th>
-            <th></th>
-          </tr>
+            <tr>
+              <th class="py-2.5 px-2 text-left align-middle bg-slate-50 font-semibold text-xs text-slate-500">申請書アプリ</th>
+              <th class="py-2.5 px-2 text-left align-middle bg-slate-50 font-semibold text-xs text-slate-500">紐付けキー</th>
+              <th class="py-2.5 px-2 text-left align-middle bg-slate-50 font-semibold text-xs text-slate-500">連携モード</th>
+              <th class="py-2.5 px-2 text-left align-middle bg-slate-50 font-semibold text-xs text-slate-500">取得する欄（内容取得時）</th>
+              <th class="th-flow py-2.5 px-2 text-left align-middle bg-slate-50 font-semibold text-xs text-slate-500"><span class="th-arrow">→</span> 団体一覧に表示</th>
+              <th class="th-flow py-2.5 px-2 text-left align-middle bg-slate-50 font-semibold text-xs text-slate-500"><span class="th-arrow">→</span> 連絡先に表示</th>
+              <th class="py-2.5 px-2 text-left align-middle bg-slate-50 font-semibold text-xs text-slate-500 w-[60px]"></th>
+            </tr>
           </thead>
-          <tbody id="child-app-tbody"></tbody>
+          <tbody id="child-app-tbody" class="[&_tr:hover]:bg-slate-50/50">
+            <!-- 行は JS で追加 -->
+          </tbody>
         </table>
       </div>
-      <button type="button" id="add-child-row" class="btn btn-add">+ 申請書を1件追加</button>
+      <p class="section-hint section-flow-hint mt-2 text-sm text-slate-500"><span class="flow-arrow">申請書の結果</span> <span class="flow-arrow-symbol">→</span> 団体一覧・連絡先の「表示」欄に反映されます。</p>
+      <button type="button" id="add-child-row" class="btn-add mt-4 py-2.5 px-4 text-sm bg-slate-100 text-slate-800 border border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-200 hover:border-slate-400">+ 申請書を追加</button>
     </section>
+    </div>
 
-    <section class="config-card card-step">
-      <div class="step-head">
-        <span class="step-num">2</span>
+    <div id="contact-mode-config" class="hidden" style="display:none;">
+    <section class="config-card card-step bg-white rounded-xl shadow-sm border border-slate-200 p-7 mb-8">
+      <div class="step-head flex items-start gap-4 mb-6">
+        <span class="step-num inline-flex items-center justify-center w-9 h-9 min-w-[2.25rem] rounded-full bg-blue-500 text-white font-bold text-base">1</span>
         <div>
-          <h2>団体一覧で「どの項目」で団体を識別するか</h2>
-          <p class="section-hint">申請書と団体一覧を同じ値で紐付けます。レコード番号や団体IDなど、1団体1つに決まる項目を選んでください。</p>
+          <h2 class="m-0 mb-1.5 text-lg font-semibold text-slate-800">フラグ欄の編集制限（APIからのみ更新可）</h2>
+          <p class="section-hint m-0 text-sm text-slate-500 leading-relaxed">同期で更新される欄を一覧で編集不可にすると、手動変更を防げます。</p>
         </div>
       </div>
-      <div class="field-block">
-        <label for="parent-group-id-field" class="field-label">団体一覧アプリの紐付けキー</label>
-        <select id="parent-group-id-field" class="field-input"></select>
+      <div class="field-block mb-5">
+        <label class="field-label block mb-1.5 text-sm font-semibold text-slate-700">編集不可にする欄（複数選択可）</label>
+        <div id="contact-readonly-fields" class="checkbox-list max-h-[220px] overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-200 [&_label]:block [&_label]:mb-2 [&_label]:cursor-pointer"></div>
       </div>
     </section>
-
-    <section class="config-card card-step card-optional">
-      <div class="step-head">
-        <span class="step-num">3</span>
+    <section class="config-card card-step bg-white rounded-xl shadow-sm border border-slate-200 p-7 mb-8">
+      <div class="step-head flex items-start gap-4 mb-6">
+        <span class="step-num inline-flex items-center justify-center w-9 h-9 min-w-[2.25rem] rounded-full bg-blue-500 text-white font-bold text-base">2</span>
         <div>
-          <h2>連絡先アプリにも同じ結果を反映する（任意）</h2>
-          <p class="section-hint">使わない場合は何も選ばずに保存してかまいません。</p>
+          <h2 class="m-0 mb-1.5 text-lg font-semibold text-slate-800">一覧の絞り込み</h2>
+          <p class="section-hint m-0 text-sm text-slate-500 leading-relaxed">フラグの状態（提出済/未提出）で一覧を絞り込む切り替えを表示します。</p>
         </div>
       </div>
-      <div class="field-block">
-        <label class="field-label">連絡先アプリ</label>
-        <div class="app-select-row">
-          <select id="contact-app-id" class="field-input"></select>
-          <button type="button" id="contact-app-verify" class="btn btn-verify">アプリ名を確認</button>
-        </div>
-        <span id="contact-app-name-display" class="app-name-display"></span>
+      <div class="field-block mb-0">
+        <label class="checkbox-label inline-flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="contact-listview-filter" class="m-0">
+          <span>一覧でフラグによる絞り込みをする</span>
+        </label>
       </div>
-      <div class="field-block">
-        <label for="contact-group-id-field" class="field-label">連絡先アプリの紐付けキー</label>
-        <select id="contact-group-id-field" class="field-input"></select>
-      </div>
-      <p class="section-hint" style="margin-top:8px;">上記「1. チェックする申請書」の各行で、連絡先のどの欄にその申請書の結果を出すか指定できます。</p>
     </section>
+    </div>
 
-    <div class="actions">
-      <button type="button" id="btn-cancel" class="btn btn-ghost">キャンセル</button>
-      <button type="button" id="btn-save" class="btn btn-primary btn-save">保存する</button>
+    <div class="actions mt-8 pt-6 border-t border-slate-200 flex items-center gap-3 flex-wrap">
+      <button type="button" id="btn-cancel" class="btn-ghost py-3 px-6 rounded-lg text-slate-500 bg-transparent border-none cursor-pointer text-[15px] hover:text-slate-800 hover:underline">キャンセル</button>
+      <button type="button" id="btn-save" class="btn-primary btn-save py-3.5 px-7 bg-emerald-600 text-white font-semibold rounded-lg cursor-pointer text-[15px] hover:bg-emerald-700">保存する</button>
     </div>
   </div>
 </body>
