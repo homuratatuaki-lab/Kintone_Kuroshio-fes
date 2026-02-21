@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "APP",
   "name": {
-    "ja": "黒潮祭 提出状況 一括同期",
-    "en": "Kuroshio Festival Submission Status Sync"
+    "ja": "黒潮祭 連携プラグイン",
+    "en": "Kuroshio Festival Link Plugin"
   },
   "description": {
     "ja": "団体一覧・連絡先と申請書の提出状況を同期し、一括で更新します。",

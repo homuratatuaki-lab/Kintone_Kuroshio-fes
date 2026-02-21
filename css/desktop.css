@@ -108,24 +108,182 @@
   color: #27ae60;
 }
 
-/* 連絡先モード：一覧絞り込み */
+/* 連絡先モード：一覧絞り込み（kintone プラグインスタイル準拠） */
 .festival-contact-filter {
-  margin: 8px 0;
-  padding: 8px 0;
+  display: block;
+  margin: 8px 0 8px 16px;
+  padding-left: 8px;
+  overflow-x: auto;
+}
+
+.festival-contact-filter .kintoneplugin-table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin-left: 0;
+  margin-bottom: 16px;
+  min-width: 400px;
+  font-size: 14px;
+}
+
+.festival-contact-filter .kintoneplugin-table-th {
+  border-color: #3498db;
+  height: 40px;
+  color: #fff;
+  box-sizing: border-box;
+  text-align: left;
+  font-weight: 400;
+  font-size: 12px;
+  white-space: nowrap;
+  border-width: 2px;
+  background-color: #3498db;
+}
+
+.festival-contact-filter .kintoneplugin-table-th .title {
+  display: inline-block;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  min-width: 80px;
+}
+
+.festival-contact-filter .kintoneplugin-table-th-blankspace {
+  background-color: transparent;
+  border: 1px solid #e3e7e8;
+}
+
+.festival-contact-filter .kintoneplugin-table td {
+  border-color: #e3e7e8;
+  border-style: solid;
+  border-width: 0 1px 1px 0;
+  vertical-align: middle;
+  padding: 4px 8px;
+}
+
+.festival-contact-filter .kintoneplugin-table td:first-child {
+  border-left-width: 1px;
+}
+
+.festival-contact-filter .kintoneplugin-table-td-control {
+  padding: 0 8px;
+}
+
+.festival-contact-filter .kintoneplugin-table-td-control-value {
+  overflow: hidden;
+  padding: 4px 0;
+  min-height: 21px;
+  color: #333;
+  background-color: transparent;
+}
+
+.festival-contact-filter .kintoneplugin-table-td-control select {
+  margin: 0;
+  padding: 0 8px;
+  height: 40px;
+  outline: none;
+  border: 1px solid #e3e7e8;
+  background-color: #fff;
+  color: #333;
+  font-size: 13px;
+  min-width: 120px;
+  box-sizing: border-box;
+}
+
+.festival-contact-filter .festival-filter-cond-cell {
   display: flex;
   align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.festival-contact-filter .festival-filter-cond-cell .festival-filter-op {
+  min-width: 56px;
+  width: auto;
+}
+
+.festival-contact-filter .kintoneplugin-table-td-operation {
+  border-right: 0;
+  border-bottom: 0;
+  vertical-align: middle;
+  width: 56px;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+.festival-contact-filter .kintoneplugin-table-td-operation .festival-filter-btn-circle {
+  margin-left: 4px;
+}
+
+.festival-contact-filter .kintoneplugin-table-td-operation .festival-filter-btn-circle:first-child {
+  margin-left: 0;
+}
+
+/* 各行の ＋（行追加）・ −（行削除）丸アイコン（少し小さめ） */
+.festival-contact-filter .festival-filter-btn-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+  color: #fff;
+}
+
+/* ＋ ボタン：青い丸 */
+.festival-contact-filter .festival-filter-btn-add {
+  background: #3498db;
+  font-size: 16px;
+}
+
+.festival-contact-filter .festival-filter-btn-add:hover {
+  background: #2980b9;
+}
+
+/* − ボタン：グレーの丸 */
+.festival-contact-filter .festival-filter-btn-del {
+  background: #95a5a6;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.festival-contact-filter .festival-filter-btn-del:hover {
+  background: #7f8c8d;
+}
+
+.festival-contact-filter .festival-filter-join-last {
+  color: #888;
+  font-size: 14px;
+}
+
+.festival-contact-filter .kintoneplugin-button-normal {
+  display: inline-block;
+  box-sizing: border-box;
+  padding: 0 12px;
+  height: 40px;
+  outline: none;
+  border: 1px solid #e3e7e8;
+  background-color: #f7f9fa;
+  box-shadow: 1px 1px 1px #fff inset;
+  color: #3498db;
+  text-align: center;
+  line-height: 38px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.festival-contact-filter .kintoneplugin-button-normal:hover {
+  background-color: #c8d6dd;
+  box-shadow: none;
+}
+
+.festival-contact-filter-actions {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-}
-
-.festival-contact-filter label {
-  font-size: 14px;
-  color: #333;
-}
-
-.festival-contact-filter select {
-  padding: 6px 10px;
-  border: 1px solid #bdc3c7;
-  border-radius: 6px;
-  font-size: 14px;
-  background: #fff;
 }

@@ -12,7 +12,7 @@
     <section class="config-card config-mode-card">
       <h2 class="config-mode-title">このアプリの役割</h2>
       <div class="config-mode-radios">
-        <label class="radio-label"><input type="radio" name="config-mode" value="parent" id="config-mode-parent"> 団体一覧（同期を実行）</label>
+        <label class="radio-label"><input type="radio" name="config-mode" value="parent" id="config-mode-parent" checked> 団体管理</label>
         <label class="radio-label"><input type="radio" name="config-mode" value="contact" id="config-mode-contact"> 連絡先（同期先・表示用）</label>
       </div>
     </section>
@@ -22,7 +22,7 @@
       <div class="step-head">
         <span class="step-num">1</span>
         <div>
-          <h2>団体一覧の紐付け</h2>
+          <h2>団体管理の紐付け</h2>
           <p class="section-hint">団体1件に対応する項目（レコード番号・団体IDなど）を選びます。</p>
         </div>
       </div>
@@ -67,7 +67,7 @@
               <th>紐付けキー</th>
               <th>連携モード</th>
               <th>取得する欄（内容取得時）</th>
-              <th class="th-flow"><span class="th-arrow">→</span> 団体一覧に表示</th>
+              <th class="th-flow"><span class="th-arrow">→</span> 団体管理に表示</th>
               <th class="th-flow"><span class="th-arrow">→</span> 連絡先に表示</th>
               <th></th>
             </tr>
@@ -75,7 +75,7 @@
           <tbody id="child-app-tbody"></tbody>
         </table>
       </div>
-      <p class="section-hint section-flow-hint" style="margin-top:8px;"><span class="flow-arrow">申請書の結果</span> <span class="flow-arrow-symbol">→</span> 団体一覧・連絡先の「表示」欄に反映されます。</p>
+      <p class="section-hint section-flow-hint" style="margin-top:8px;"><span class="flow-arrow">申請書の結果</span> <span class="flow-arrow-symbol">→</span> 団体管理・連絡先の「表示」欄に反映されます。（団体管理に表示した欄はAPIからのみ更新可能）</p>
       <button type="button" id="add-child-row" class="btn btn-add">+ 申請書を追加</button>
     </section>
     </div>
@@ -104,6 +104,32 @@
       </div>
       <div class="field-block">
         <label class="checkbox-label"><input type="checkbox" id="contact-listview-filter"> 一覧でフラグによる絞り込みをする</label>
+      </div>
+      <div class="field-block">
+        <label for="contact-listview-default-contact" class="field-label">一覧を開いたときの表示</label>
+        <select id="contact-listview-default-contact" class="field-input">
+          <option value="all">全て</option>
+          <option value="submitted">提出済あり</option>
+          <option value="not_submitted">未提出のみ</option>
+        </select>
+        <p class="section-hint">団体管理の設定と揃えると、同じ絞り込みが一覧に反映されます。</p>
+      </div>
+      <div class="field-block">
+        <label class="field-label">提出物ごとの一覧View</label>
+        <p class="section-hint">申請書（提出物）ごとに一覧で切り替えられるViewを追加します。表示名と、提出済/未提出が入る欄を指定してください。</p>
+        <div class="table-wrap">
+          <table id="contact-view-settings-table" class="config-table">
+            <thead>
+              <tr>
+                <th>表示名</th>
+                <th>提出状況の欄（フィールドコード）</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="contact-view-settings-tbody"></tbody>
+          </table>
+        </div>
+        <button type="button" id="add-contact-view-row" class="btn btn-add">+ 提出物を追加</button>
       </div>
     </section>
     </div>

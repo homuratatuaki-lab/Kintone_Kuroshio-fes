@@ -44,7 +44,8 @@
       contactGroupIdField: '',
       contactTargetField: '',
       contactAppReadOnlyFields: [],
-      contactAppListViewFilter: false
+      contactAppListViewFilter: false,
+      contactListViewDefault: 'all'
     };
   }
 
@@ -210,13 +211,15 @@
     var removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'btn-remove-row';
-    removeBtn.textContent = '削除';
+    removeBtn.setAttribute('title', '行を削除');
+    removeBtn.setAttribute('aria-label', '行を削除');
+    removeBtn.textContent = '−';
     removeTd.appendChild(removeBtn);
 
-    fillSelect(appSelect, appList, rowData.appId, '申請書アプリを選択');
-    fillSelect(groupSelect, [], rowData.groupIdFieldCode, '紐付けキー');
-    fillSelect(copySelect, [], rowData.copySourceFieldCode, '取得する欄');
-    fillSelect(targetSelect, parentFields, rowData.targetFieldCode, '表示する欄を選択');
+    fillSelect(appSelect, appList, rowData.appId, '申請書アプリを選択', false);
+    fillSelect(groupSelect, [], rowData.groupIdFieldCode, '紐付けキー', false);
+    fillSelect(copySelect, [], rowData.copySourceFieldCode, '取得する欄', false);
+    fillSelect(targetSelect, parentFields, rowData.targetFieldCode, '表示する欄を選択', false);
     fillSelect(contactTargetSelect, contactFields, rowData.contactTargetField, '—');
 
     function updateCopyCellGrayed() {
@@ -245,8 +248,8 @@
       setFieldSelectsLoading(true);
       fetchFormFields(appId)
         .then(function(fields) {
-          fillSelect(groupSelect, fields, null, '紐付けキー');
-          fillSelect(copySelect, fields, null, 'コピー元');
+          fillSelect(groupSelect, fields, null, '紐付けキー', false);
+          fillSelect(copySelect, fields, null, '取得する欄', false);
         })
         .catch(function(err) {
           showError('参照先アプリのフィールド取得に失敗しました: ' + (err.message || err));
@@ -259,8 +262,8 @@
       setFieldSelectsLoading(true);
       fetchFormFields(rowData.appId)
         .then(function(fields) {
-          fillSelect(groupSelect, fields, rowData.groupIdFieldCode, '紐付けキー');
-          fillSelect(copySelect, fields, rowData.copySourceFieldCode, 'コピー元');
+          fillSelect(groupSelect, fields, rowData.groupIdFieldCode, '紐付けキー', false);
+          fillSelect(copySelect, fields, rowData.copySourceFieldCode, '取得する欄', false);
         })
         .catch(function(err) {
           showError('子アプリのフィールド取得に失敗しました: ' + (err.message || err));
@@ -336,6 +339,166 @@
     });
   }
 
+  function addContactViewRow(tbody, fields, rowData) {
+    rowData = rowData || { name: '', fieldCode: '' };
+    var tr = document.createElement('tr');
+    var nameCell = document.createElement('td');
+    var nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'field-input';
+    nameInput.placeholder = '例: 〇〇申請書';
+    nameInput.value = rowData.name || '';
+    nameCell.appendChild(nameInput);
+    tr.appendChild(nameCell);
+    var fieldCell = document.createElement('td');
+    var fieldSelect = document.createElement('select');
+    fieldSelect.className = 'field-input contact-view-field-select';
+    fillSelect(fieldSelect, fields || [], rowData.fieldCode || null, '— 選択 —');
+    fieldCell.appendChild(fieldSelect);
+    tr.appendChild(fieldCell);
+    var delCell = document.createElement('td');
+    var delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn btn-ghost btn-del';
+    delBtn.textContent = '−';
+    delBtn.setAttribute('aria-label', '削除');
+    delBtn.addEventListener('click', function() {
+      if (tr.parentNode) tr.parentNode.removeChild(tr);
+    });
+    delCell.appendChild(delBtn);
+    tr.appendChild(delCell);
+    tbody.appendChild(tr);
+  }
+
+  function fillContactViewSettingsTable(fields, viewSettings) {
+    var tbody = document.getElementById('contact-view-settings-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    (viewSettings || []).forEach(function(row) {
+      addContactViewRow(tbody, fields, { name: row.name || '', fieldCode: row.fieldCode || '' });
+    });
+  }
+
+  function collectContactViewSettings(tbody) {
+    var rows = [];
+    if (!tbody) return rows;
+    var trs = tbody.querySelectorAll('tr');
+    for (var i = 0; i < trs.length; i++) {
+      var tr = trs[i];
+      var nameInput = tr.querySelector('input[type="text"]');
+      var fieldSelect = tr.querySelector('.contact-view-field-select');
+      var name = (nameInput && nameInput.value) ? String(nameInput.value).trim() : '';
+      var fieldCode = (fieldSelect && fieldSelect.value) ? String(fieldSelect.value).trim() : '';
+      if (name || fieldCode) rows.push({ name: name, fieldCode: fieldCode });
+    }
+    return rows;
+  }
+
+  var contactAppSelectListenerAttached = false;
+
+  function attachContactAppSelectListener() {
+    var contactAppSelect = document.getElementById('contact-app-id');
+    var contactGroupSelect = document.getElementById('contact-group-id-field');
+    if (!contactAppSelect || contactAppSelectListenerAttached) return;
+    contactAppSelectListenerAttached = true;
+    contactAppSelect.addEventListener('change', function() {
+      var appId = (contactAppSelect.value || '').trim();
+      contactGroupSelect.innerHTML = '<option value="">読み込み中…</option>';
+      contactGroupSelect.disabled = true;
+      if (!appId || appId === 'undefined') {
+        contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
+        contactGroupSelect.disabled = false;
+        fillAllContactTargetSelects([]);
+        return;
+      }
+      fetchFormFields(appId)
+        .then(function(fields) {
+          fillSelect(contactGroupSelect, fields, null, '紐付けキー');
+          fillAllContactTargetSelects(fields);
+        })
+        .catch(function(err) {
+          showError('連絡先アプリのフィールド取得に失敗しました: ' + (err.message || err));
+          contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
+          fillAllContactTargetSelects([]);
+        })
+        .then(function() {
+          contactGroupSelect.disabled = false;
+        });
+    });
+  }
+
+  /**
+   * 団体一覧モード用のドロップダウン（アプリ一覧・紐付けキー等）を取得して表示する。
+   * 初回 loadConfig で parent のときと、「このアプリの役割」を連絡先→団体一覧に切り替えたときに使用。
+   * @returns {Promise} 処理完了の Promise（loading 非表示に利用）
+   */
+  function loadParentModeData(c) {
+    c = c || getDefaultConfig();
+    var parentAppId = getParentAppId();
+    var tbody = document.getElementById('child-app-tbody');
+    var parentGroupSelect = document.getElementById('parent-group-id-field');
+    var contactAppSelect = document.getElementById('contact-app-id');
+    var contactGroupSelect = document.getElementById('contact-group-id-field');
+    if (!tbody || !contactAppSelect) return Promise.resolve();
+
+    if (parentGroupSelect) parentGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
+    contactAppSelect.innerHTML = '<option value="">— 選択 —</option>';
+    if (contactGroupSelect) contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
+    var hadRows = tbody.querySelectorAll('tr').length > 0;
+    if (!hadRows) tbody.innerHTML = '';
+
+    var loadParentFields = parentAppId
+      ? fetchFormFields(parentAppId).then(function(fields) {
+          cache.parentFields = fields;
+          fillSelect(parentGroupSelect, fields, c.parentGroupIdField, '紐付けキーを選択');
+          return fields;
+        }).catch(function(err) {
+          showError('団体一覧アプリのフィールド取得に失敗しました: ' + (err.message || err));
+          return [];
+        })
+      : Promise.resolve([]);
+
+    var loadContactFields = (c.contactAppId && String(c.contactAppId) !== 'undefined')
+      ? fetchFormFields(c.contactAppId).then(function(fields) {
+          cache.contactFields = fields;
+          fillSelect(contactGroupSelect, fields, c.contactGroupIdField, '紐付けキー');
+          fillAllContactTargetSelects(fields);
+          return fields;
+        }).catch(function(err) {
+          showError('連絡先アプリのフィールド取得に失敗しました: ' + (err.message || err));
+          cache.contactFields = [];
+          return [];
+        })
+      : Promise.resolve([]);
+
+    return fetchAppList()
+      .then(function(appList) {
+        cache.appList = appList;
+        fillSelect(contactAppSelect, appList.map(function(a) { return { id: a.id, name: a.name }; }), c.contactAppId, '連絡先アプリを選択');
+        attachContactAppSelectListener();
+        return loadParentFields.then(function(parentFields) {
+          return loadContactFields.then(function(contactFields) {
+            var cf = contactFields || cache.contactFields || [];
+            var appOpts = appList.map(function(a) { return { id: a.id, name: a.name }; });
+            if (!hadRows) {
+              if (!c.childAppSettings || !c.childAppSettings.length) {
+                addChildRow(tbody, null, appOpts, parentFields, cf);
+              } else {
+                c.childAppSettings.forEach(function(row) {
+                  addChildRow(tbody, row, appOpts, parentFields, cf);
+                });
+              }
+            } else {
+              fillAllContactTargetSelects(cache.contactFields || []);
+            }
+          });
+        });
+      })
+      .catch(function(err) {
+        showError('アプリ一覧の取得に失敗しました。権限を確認してください。' + (err.message ? '\n' + err.message : ''));
+      });
+  }
+
   function loadConfig() {
     clearError();
     clearFieldErrors();
@@ -364,17 +527,26 @@
     var contactAppSelect = document.getElementById('contact-app-id');
     var contactGroupSelect = document.getElementById('contact-group-id-field');
     var contactListViewFilter = document.getElementById('contact-listview-filter');
+    var contactListViewDefaultEl = document.getElementById('contact-listview-default');
+    var contactListViewDefaultContactEl = document.getElementById('contact-listview-default-contact');
 
     if (contactListViewFilter) contactListViewFilter.checked = !!c.contactAppListViewFilter;
+    var defaultView = (c.contactListViewDefault === 'submitted' || c.contactListViewDefault === 'not_submitted') ? c.contactListViewDefault : 'all';
+    if (contactListViewDefaultEl) contactListViewDefaultEl.value = defaultView;
+    if (contactListViewDefaultContactEl) contactListViewDefaultContactEl.value = defaultView;
 
     if (mode === 'contact') {
       fetchFormFields(parentAppId)
         .then(function(fields) {
+          cache.contactFormFields = fields;
           fillContactReadOnlyFields(fields, c.contactAppReadOnlyFields || []);
+          fillContactViewSettingsTable(fields, c.contactViewSettings || []);
         })
         .catch(function(err) {
           showError('このアプリのフィールド取得に失敗しました: ' + (err.message || err));
+          cache.contactFormFields = [];
           fillContactReadOnlyFields([], []);
+          fillContactViewSettingsTable([], []);
         })
         .then(function() {
           if (loadingEl) loadingEl.style.display = 'none';
@@ -382,87 +554,10 @@
       return;
     }
 
-    if (parentGroupSelect) parentGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
-    if (contactAppSelect) contactAppSelect.innerHTML = '<option value="">— 選択 —</option>';
-    if (contactGroupSelect) contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
     if (tbody) tbody.innerHTML = '';
-
-    var loadParentFields = parentAppId
-      ? fetchFormFields(parentAppId).then(function(fields) {
-          cache.parentFields = fields;
-          fillSelect(parentGroupSelect, fields, c.parentGroupIdField, '紐付けキーを選択');
-          return fields;
-        }).catch(function(err) {
-          showError('団体一覧アプリのフィールド取得に失敗しました: ' + (err.message || err));
-          return [];
-        })
-      : Promise.resolve([]);
-
-    var loadContactFields = (c.contactAppId && String(c.contactAppId) !== 'undefined')
-      ? fetchFormFields(c.contactAppId).then(function(fields) {
-          cache.contactFields = fields;
-          fillSelect(contactGroupSelect, fields, c.contactGroupIdField, '紐付けキー');
-          fillAllContactTargetSelects(fields);
-          return fields;
-        }).catch(function(err) {
-          showError('連絡先アプリのフィールド取得に失敗しました: ' + (err.message || err));
-          cache.contactFields = [];
-          return [];
-        })
-      : Promise.resolve([]);
-
-    fetchAppList()
-      .then(function(appList) {
-        cache.appList = appList;
-        fillSelect(contactAppSelect, appList.map(function(a) { return { id: a.id, name: a.name }; }), c.contactAppId, '連絡先アプリを選択');
-
-        return loadParentFields.then(function(parentFields) {
-          return loadContactFields.then(function(contactFields) {
-            var cf = contactFields || cache.contactFields || [];
-            var appOpts = appList.map(function(a) { return { id: a.id, name: a.name }; });
-            if (c.childAppSettings.length === 0) {
-              addChildRow(tbody, null, appOpts, parentFields, cf);
-            } else {
-              c.childAppSettings.forEach(function(row) {
-                addChildRow(tbody, row, appOpts, parentFields, cf);
-              });
-            }
-          });
-        });
-      })
-      .catch(function(err) {
-        showError('アプリ一覧の取得に失敗しました。権限を確認してください。' + (err.message ? '\n' + err.message : ''));
-      })
-      .then(function() {
-        if (loadingEl) loadingEl.style.display = 'none';
-      });
-
-    if (contactAppSelect) {
-      contactAppSelect.addEventListener('change', function() {
-        var appId = (contactAppSelect.value || '').trim();
-        contactGroupSelect.innerHTML = '<option value="">読み込み中…</option>';
-        contactGroupSelect.disabled = true;
-        if (!appId || appId === 'undefined') {
-          contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
-          contactGroupSelect.disabled = false;
-          fillAllContactTargetSelects([]);
-          return;
-        }
-        fetchFormFields(appId)
-          .then(function(fields) {
-            fillSelect(contactGroupSelect, fields, null, '紐付けキー');
-            fillAllContactTargetSelects(fields);
-          })
-          .catch(function(err) {
-            showError('連絡先アプリのフィールド取得に失敗しました: ' + (err.message || err));
-            contactGroupSelect.innerHTML = '<option value="">— 選択 —</option>';
-            fillAllContactTargetSelects([]);
-          })
-          .then(function() {
-            contactGroupSelect.disabled = false;
-          });
-      });
-    }
+    loadParentModeData(c)
+      .then(function() { if (loadingEl) loadingEl.style.display = 'none'; })
+      .catch(function() { if (loadingEl) loadingEl.style.display = 'none'; });
   }
 
   function saveConfig() {
@@ -478,10 +573,16 @@
         if (code) readonlyCodes.push(code);
       });
       var listViewFilter = !!(document.getElementById('contact-listview-filter') && document.getElementById('contact-listview-filter').checked);
+      var defaultEl = document.getElementById('contact-listview-default-contact');
+      var listViewDefault = (defaultEl && (defaultEl.value === 'submitted' || defaultEl.value === 'not_submitted')) ? defaultEl.value : 'all';
+      var viewSettingsTbody = document.getElementById('contact-view-settings-tbody');
+      var contactViewSettings = viewSettingsTbody ? collectContactViewSettings(viewSettingsTbody) : [];
       var config = {
         mode: 'contact',
         contactAppReadOnlyFields: readonlyCodes,
-        contactAppListViewFilter: listViewFilter
+        contactAppListViewFilter: listViewFilter,
+        contactListViewDefault: listViewDefault,
+        contactViewSettings: contactViewSettings
       };
       try {
         kintone.plugin.app.setConfig({ config: JSON.stringify(config) }, function() {
@@ -499,7 +600,7 @@
     var ok = true;
     if (!parentGroupIdField) {
       if (parentGroupSelect) parentGroupSelect.classList.add('config-input-error');
-      showError('1. 団体一覧の紐付けで「紐付けキー」を選択してください。');
+      showError('1. 団体管理の紐付けで「紐付けキー」を選択してください。');
       ok = false;
     }
     var tbody = document.getElementById('child-app-tbody');
@@ -508,7 +609,7 @@
       var row = childRows[i];
       if (row.appId && String(row.appId) !== 'undefined') {
         if (!row.groupIdFieldCode || !row.targetFieldCode) {
-          showError('3. 申請書の指定で、申請書を選んだ行は「紐付けキー」と「→ 団体一覧に表示」を選択してください。');
+          showError('3. 申請書の指定で、申請書を選んだ行は「紐付けキー」と「→ 団体管理に表示」を選択してください。');
           ok = false;
           break;
         }
@@ -527,6 +628,8 @@
     }
     if (!ok) return;
 
+    var defaultEl = document.getElementById('contact-listview-default');
+    var listViewDefault = (defaultEl && (defaultEl.value === 'submitted' || defaultEl.value === 'not_submitted')) ? defaultEl.value : 'all';
     var config = {
       mode: 'parent',
       childAppSettings: childRows,
@@ -535,7 +638,8 @@
       contactGroupIdField: contactGroupIdField,
       contactTargetField: '',
       contactAppReadOnlyFields: [],
-      contactAppListViewFilter: false
+      contactAppListViewFilter: false,
+      contactListViewDefault: listViewDefault
     };
     try {
       kintone.plugin.app.setConfig({ config: JSON.stringify(config) }, function() {
@@ -557,6 +661,13 @@
         addChildRow(document.getElementById('child-app-tbody'), null, appList, parentFields, contactFields);
       });
     }
+    var addContactViewBtn = document.getElementById('add-contact-view-row');
+    if (addContactViewBtn) {
+      addContactViewBtn.addEventListener('click', function() {
+        var tbody = document.getElementById('contact-view-settings-tbody');
+        if (tbody) addContactViewRow(tbody, cache.contactFormFields || [], null);
+      });
+    }
 
     var parentRadio = document.getElementById('config-mode-parent');
     var contactRadio = document.getElementById('config-mode-contact');
@@ -569,6 +680,13 @@
             fillContactReadOnlyFields(fields, []);
           }).catch(function() {});
         }
+      } else {
+        /* 団体一覧に切り替えたときは、ドロップダウンを取得して表示する（連絡先で開いた場合は未取得のため） */
+        var pluginId = getPluginId();
+        var raw = (pluginId && kintone.plugin.app.getConfig) ? kintone.plugin.app.getConfig(pluginId) : null;
+        var c = (raw && raw.config) ? (function() { try { return JSON.parse(raw.config); } catch (e) { return null; } })() : null;
+        if (!c || !c.childAppSettings) c = getDefaultConfig();
+        loadParentModeData(c);
       }
     }
     if (parentRadio) parentRadio.addEventListener('change', onModeChange);

@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -i ./src/config.css -o ./css/config.css",
-    "pack": "npm run build:css && node scripts/ensure-icon.js && kintone-plugin-packer . --out plugin.zip",
-    "pack:update": "npm run build:css && node scripts/ensure-icon.js && kintone-plugin-packer . --ppk ./*.ppk --out plugin.zip"
+    "pack": "node scripts/ensure-icon.js && kintone-plugin-packer . --out plugin.zip",
+    "pack:update": "node scripts/ensure-icon.js && kintone-plugin-packer . --ppk ./*.ppk --out plugin.zip"
   },
   "devDependencies": {
     "@kintone/plugin-packer": "^9.1.0",
