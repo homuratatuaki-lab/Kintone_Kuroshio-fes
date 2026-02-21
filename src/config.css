@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans text-slate-800 antialiased;
+  }
+}
+
+/* JSで付与するクラス・複雑なセレクタはここで定義 */
+.config-input-error {
+  @apply border-red-500 ring-2 ring-red-500/25;
+}
+
+.copy-source-cell.grayed-out {
+  @apply bg-slate-100;
+  opacity: 0.85;
+}
+.copy-source-cell.grayed-out select {
+  @apply text-slate-400 cursor-not-allowed;
+}
+
+.config-table th:nth-child(1),
+.config-table td:nth-child(1) { min-width: 120px; }
+.config-table th:nth-child(2),
+.config-table td:nth-child(2) { min-width: 110px; }
+.config-table th:nth-child(3),
+.config-table td:nth-child(3) { min-width: 160px; }
+.config-table th:nth-child(4),
+.config-table td:nth-child(4) { min-width: 100px; }
+.config-table th:nth-child(5),
+.config-table td:nth-child(5) { min-width: 120px; }
+.config-table th:nth-child(6),
+.config-table td:nth-child(6) { min-width: 120px; }
+.config-table th:nth-child(7),
+.config-table td:nth-child(7) { width: 60px; }
+
+.config-table thead th.th-flow .th-arrow {
+  @apply text-blue-500 font-bold mr-1;
+}
+.section-flow-hint .flow-arrow {
+  @apply font-semibold text-slate-800;
+}
+.section-flow-hint .flow-arrow-symbol {
+  @apply text-blue-500 font-bold mx-1;
+}
+
+.config-error:empty {
+  display: none !important;
+}
+
+/* テーブル：セル・罫線・行ホバー */
+.config-table th,
+.config-table td {
+  @apply border-b border-slate-200 py-2.5 px-2 text-left align-middle;
+}
+.config-table tbody tr:hover {
+  @apply bg-slate-50/50;
+}
+.config-table input[type="text"],
+.config-table select {
+  @apply w-full min-w-0 box-border py-2 px-2.5 border border-slate-300 rounded-md text-sm;
+}
+.config-table .mode-cell {
+  min-width: 160px;
+}
+
+/* 削除ボタン */
+.config-table .btn-remove-row {
+  @apply py-1.5 px-3 text-xs bg-transparent border border-slate-200 rounded-md text-slate-500 cursor-pointer;
+}
+.config-table .btn-remove-row:hover {
+  @apply bg-red-50 border-red-200 text-red-600;
+}

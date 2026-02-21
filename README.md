@@ -92,7 +92,17 @@ git push origin main
 
 `image/icon.png` が無い場合は `npm run pack` 実行時に `scripts/ensure-icon.js` で 64×64 のプレースホルダーが自動作成されます。任意の 64×64 PNG に差し替えて構いません。
 
-### 2. パッケージ化コマンド
+### 2. 設定画面の CSS（Tailwind）
+
+設定画面のスタイルは **Tailwind CSS** でビルドしています。`src/config.css` や `html/config.html` のクラスを変更した場合は、パッケージ化の前に次を実行してください。
+
+```bash
+npm run build:css
+```
+
+`npm run pack` / `npm run pack:update` は内部で `build:css` を実行するため、通常はそのまま実行して問題ありません。
+
+### 3. パッケージ化コマンド
 
 **事前条件**: Node.js がインストールされていること。
 
